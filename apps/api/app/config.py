@@ -2,9 +2,17 @@ import os
 from dataclasses import dataclass
 
 
+def normalize_database_url(value: str) -> str:
+    if value.startswith("postgresql://"):
+        return value.replace("postgresql://", "postgresql+psycopg://", 1)
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
-    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./assetlens.db")
+    database_url: str = normalize_database_url(
+        os.getenv("DATABASE_URL", "sqlite:///./assetlens.db")
+    )
     demo_token: str = os.getenv("DEMO_TOKEN", "assetlens-demo-token")
     web_origin: str = os.getenv("WEB_ORIGIN", "http://localhost:3000")
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
