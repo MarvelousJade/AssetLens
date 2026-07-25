@@ -11,6 +11,13 @@ copilot, CSV import, and timestamped PDF reports.
 
 ![AssetLens portfolio overview](docs/screenshots/dashboard.png)
 
+## Live demo
+
+Open [assetlens-web.onrender.com](https://assetlens-web.onrender.com) and choose
+**Enter demo workspace**. The deployment uses free Render web services and a
+free Neon PostgreSQL database, so the first request after inactivity can take a
+moment to wake up.
+
 ## Quick start
 
 ### Local development
