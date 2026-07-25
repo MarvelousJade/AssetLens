@@ -8,9 +8,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: assetlens-db
-          property: connectionString
+        sync: false
       - key: TASK_MODE
         value: local
       - key: WEB_ORIGIN
@@ -29,10 +27,3 @@ services:
     envVars:
       - key: API_UPSTREAM
         value: https://assetlens-api.onrender.com
-
-databases:
-  - name: assetlens-db
-    plan: free
-    region: ohio
-    databaseName: assetlens
-    user: assetlens
