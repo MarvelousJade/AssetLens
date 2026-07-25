@@ -14,7 +14,7 @@ services:
       - key: WEB_ORIGIN
         value: https://assetlens-web.onrender.com
       - key: DEMO_TOKEN
-        generateValue: true
+        value: assetlens-demo-token
       - key: OPENAI_API_KEY
         sync: false
 
