@@ -14,6 +14,12 @@
   --shadow: 0 10px 34px rgb(29 54 51 / 7%);
   --serif: Georgia, "Times New Roman", serif;
   --sans: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+  --text-caption: 12px;
+  --text-meta: 13px;
+  --text-small: 14px;
+  --text-control: 15px;
+  --text-body: 16px;
+  --text-lead: 18px;
 }
 
 * { box-sizing: border-box; }
@@ -301,6 +307,77 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .loading-screen .spinner { margin-bottom: 5px; }
 footer { display: flex; justify-content: space-between; margin-top: auto; padding: 15px 34px; border-top: 1px solid #dce2de; color: #899592; font-size: 7px; letter-spacing: .04em; }
 
+/* Readable type scale */
+html, body { font-size: var(--text-body); line-height: 1.5; }
+.eyebrow { font-size: var(--text-meta); }
+.brand span, .login-disclaimer, .login-rule, .secure-note { font-size: var(--text-caption); }
+.feature-row strong, .demo-summary strong, .enter-button, .login-list { font-size: var(--text-body); }
+.feature-row small, .login-box > p, .demo-summary span { font-size: var(--text-small); }
+.demo-chip { font-size: var(--text-meta); }
+.login-list span { font-size: var(--text-caption); }
+
+.sidebar { width: 250px; }
+.sidebar .brand strong { font-size: 24px; }
+.sidebar nav button { height: 48px; font-size: var(--text-control); }
+.sidebar nav button i { font-size: 11px; }
+.sidebar-callout strong { font-size: var(--text-control); }
+.sidebar-callout p { font-size: var(--text-meta); }
+.user-card > span, .user-card small { font-size: var(--text-caption); }
+.user-card strong { font-size: var(--text-small); }
+.main { margin-left: 250px; width: calc(100% - 250px); }
+.topbar { height: 80px; flex-basis: 80px; }
+.portfolio-monogram { font-size: var(--text-meta); }
+.portfolio-select-wrap label { font-size: var(--text-caption); }
+.portfolio-select-wrap select { font-size: var(--text-body); }
+.data-freshness { font-size: var(--text-small); }
+.export-button, .primary-button { height: 40px; font-size: var(--text-control); }
+.global-error, .page-heading p { font-size: var(--text-body); }
+.page-heading h1 { font-size: clamp(40px, 4vw, 54px); }
+.asof-chip { font-size: var(--text-meta); }
+
+.metric-card { min-height: 128px; }
+.metric-label { font-size: var(--text-meta); }
+.info-dot { width: 17px; height: 17px; font-size: 11px; }
+.metric-card > strong { font-size: 34px; }
+.metric-card small { font-size: var(--text-small); }
+.card-head h2, .scenario-builder h2, .compact-card h2 { font-size: 24px; }
+.chart-legend-inline, .chart-summary span, .legend-row, .warning-note { font-size: var(--text-small); }
+.axis-label { font-size: var(--text-caption); }
+.chart-summary strong { font-size: var(--text-lead); }
+.donut-hole small { font-size: var(--text-caption); }
+.period-pill, .risk-metrics span { font-size: var(--text-meta); }
+.attribution-row > strong, .attribution-row > span { font-size: var(--text-small); }
+.risk-metrics strong { font-size: 22px; }
+.risk-metrics small { font-size: var(--text-caption); }
+
+.copilot-head h2 { font-size: 22px; }
+.grounded-pill, .tool-list code { font-size: var(--text-meta); }
+.copilot-intro, .copilot-form textarea, .copilot-response p { font-size: var(--text-body); }
+.suggestions button, .copilot-response summary, .inline-error { font-size: var(--text-small); }
+.copilot-foot, .tool-list small, .response-meta { font-size: var(--text-caption); }
+
+.total-value { font-size: var(--text-lead); }
+.table-tools > span, .import-message, .scenario-options small, .value-bridge span,
+.assumptions, .security-list button, .watch-row, .empty-copy { font-size: var(--text-small); }
+.search-box { height: 40px; }
+.search-box input, .holdings-table td, .security-cell strong, .icon-title p,
+.create-row input, .scenario-builder > p, .scenario-options strong, .run-button,
+.empty-scenario p, .impact-percent, .impact-list > div, .security-info strong {
+  font-size: var(--text-body);
+}
+.holdings-table { min-width: 1080px; }
+.holdings-table th, .security-cell small, .sector-tag, .security-info > span,
+.ticker-box { font-size: var(--text-meta); }
+.security-cell > span { font-size: var(--text-caption); }
+.icon-title h2 { font-size: 23px; }
+.file-button, .create-row button { font-size: var(--text-control); }
+.empty-scenario h2 { font-size: 28px; }
+.value-bridge strong, .scenario-results h3 { font-size: 20px; }
+.security-list b { font-size: var(--text-body); }
+.compact-card .card-head > span { font-size: var(--text-small); }
+.loading-screen { margin-left: 250px; font-size: var(--text-body); }
+footer { font-size: var(--text-caption); }
+
 @media (max-width: 1120px) {
   .login-page { grid-template-columns: 1fr 430px; }
   .login-story { padding: 38px 50px; }
@@ -342,15 +419,15 @@ footer { display: flex; justify-content: space-between; margin-top: auto; paddin
 @media (max-width: 560px) {
   .feature-row { grid-template-columns: 1fr; gap: 18px; }
   .login-copy h1 { font-size: 44px; }
-  .login-copy > p { font-size: 15px; }
+  .login-copy > p { font-size: 16px; }
   .topbar { height: 64px; padding: 0 12px; }
   .portfolio-select-wrap label, .portfolio-monogram { display: none; }
   .portfolio-select-wrap select { max-width: 160px; }
   .export-button { width: 35px; padding: 0; justify-content: center; font-size: 0; }
   .content { padding: 22px 13px; }
-  .page-heading h1 { font-size: 32px; }
+  .page-heading h1 { font-size: 36px; }
   .metric-strip { grid-template-columns: 1fr; }
-  .metric-card { min-height: 90px; }
+  .metric-card { min-height: 112px; }
   .chart-summary { grid-template-columns: 1fr; gap: 8px; }
   .chart-summary div { border: 0; padding: 0; }
   .allocation-layout { flex-direction: column; }
