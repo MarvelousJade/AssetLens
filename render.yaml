@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: assetlens-api
+    runtime: docker
+    rootDir: apps/api
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: assetlens-db
+          property: connectionString
+      - key: TASK_MODE
+        value: local
+      - key: WEB_ORIGIN
+        value: https://assetlens-web.onrender.com
+      - key: DEMO_TOKEN
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+
+  - type: web
+    name: assetlens-web
+    runtime: docker
+    rootDir: apps/web
+    envVars:
+      - key: API_UPSTREAM
+        value: https://assetlens-api.onrender.com
+
+databases:
+  - name: assetlens-db
+    databaseName: assetlens
+    user: assetlens

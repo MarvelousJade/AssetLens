@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: assetlens
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - api.yaml
+  - worker.yaml
+  - web.yaml
+  - ingress.yaml
+  - hpa.yaml
+images:
+  - name: assetlens-api
+    newName: ghcr.io/replace-me/assetlens-api
+    newTag: latest
+  - name: assetlens-web
+    newName: ghcr.io/replace-me/assetlens-web
+    newTag: latest

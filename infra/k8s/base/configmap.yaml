@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assetlens-config
+data:
+  TASK_MODE: celery
+  WEB_ORIGIN: https://assetlens.example.com
+  OTEL_SERVICE_NAME: assetlens-api
+  API_UPSTREAM: http://assetlens-api:8000
+  OPENAI_MODEL: gpt-5.6-sol
+  COPILOT_PROVIDER: auto

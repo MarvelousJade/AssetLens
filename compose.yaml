@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: assetlens
+      POSTGRES_USER: assetlens
+      POSTGRES_PASSWORD: assetlens
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetlens"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg://assetlens:assetlens@postgres:5432/assetlens
+      REDIS_URL: redis://redis:6379/0
+      TASK_MODE: celery
+      WEB_ORIGIN: http://localhost:3000
+      DEMO_TOKEN: assetlens-demo-token
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.6-sol}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  worker:
+    build: ./apps/api
+    command: celery -A app.celery_app.celery worker --loglevel=INFO
+    environment:
+      DATABASE_URL: postgresql+psycopg://assetlens:assetlens@postgres:5432/assetlens
+      REDIS_URL: redis://redis:6379/0
+      TASK_MODE: celery
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        API_UPSTREAM: http://api:8000
+    environment:
+      API_UPSTREAM: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:

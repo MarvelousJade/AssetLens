@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assetlens-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assetlens-worker
+  template:
+    metadata:
+      labels:
+        app: assetlens-worker
+    spec:
+      containers:
+        - name: worker
+          image: assetlens-api
+          command: ["celery", "-A", "app.celery_app.celery", "worker", "--loglevel=INFO"]
+          envFrom:
+            - configMapRef:
+                name: assetlens-config
+            - secretRef:
+                name: assetlens-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi

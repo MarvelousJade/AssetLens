@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assetlens-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assetlens-api
+  template:
+    metadata:
+      labels:
+        app: assetlens-api
+    spec:
+      containers:
+        - name: api
+          image: assetlens-api
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: assetlens-config
+            - secretRef:
+                name: assetlens-secrets
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assetlens-api
+spec:
+  selector:
+    app: assetlens-api
+  ports:
+    - port: 8000
+      targetPort: 8000
