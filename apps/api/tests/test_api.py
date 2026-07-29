@@ -68,6 +68,11 @@ def test_csv_import_is_atomic_and_idempotent(client, auth_headers):
     assert first.status_code == 200
     assert first.json()["rows_imported"] == 1
     assert replay.json()["idempotent_replay"] is True
+    holdings = client.get(
+        f"/api/portfolios/{portfolio['id']}/holdings",
+        headers=auth_headers,
+    )
+    assert len(holdings.json()["holdings"]) == 1
 
 
 def test_report_is_a_real_pdf(client, auth_headers):
