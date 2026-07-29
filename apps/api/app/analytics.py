@@ -14,7 +14,7 @@ def _utc_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def get_portfolio(db: Session, portfolio_id: str, owner_id: str = "demo-user") -> Portfolio:
+def get_portfolio(db: Session, portfolio_id: str, owner_id: str) -> Portfolio:
     portfolio = db.scalar(
         select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.owner_id == owner_id)
     )
@@ -23,12 +23,18 @@ def get_portfolio(db: Session, portfolio_id: str, owner_id: str = "demo-user") -
     return portfolio
 
 
-def _holding_rows(db: Session, portfolio_id: str) -> list[tuple[Holding, Security]]:
+def _holding_rows(
+    db: Session, portfolio_id: str, owner_id: str
+) -> list[tuple[Holding, Security]]:
     return list(
         db.execute(
             select(Holding, Security)
             .join(Security, Holding.security_id == Security.id)
-            .where(Holding.portfolio_id == portfolio_id)
+            .join(Portfolio, Holding.portfolio_id == Portfolio.id)
+            .where(
+                Holding.portfolio_id == portfolio_id,
+                Portfolio.owner_id == owner_id,
+            )
             .order_by(Security.symbol)
         ).all()
     )
@@ -48,9 +54,9 @@ def _price_map(db: Session, security_ids: list[str]) -> tuple[dict[str, dict[dat
     return dict(result), sorted(dates)
 
 
-def holdings_snapshot(db: Session, portfolio_id: str) -> dict[str, Any]:
-    portfolio = get_portfolio(db, portfolio_id)
-    rows = _holding_rows(db, portfolio_id)
+def holdings_snapshot(db: Session, portfolio_id: str, owner_id: str) -> dict[str, Any]:
+    portfolio = get_portfolio(db, portfolio_id, owner_id)
+    rows = _holding_rows(db, portfolio_id, owner_id)
     prices, all_dates = _price_map(db, [holding.security_id for holding, _ in rows])
     as_of = all_dates[-1] if all_dates else date.today()
     values: list[dict[str, Any]] = []
@@ -123,9 +129,11 @@ def _drawdown(values: list[float]) -> tuple[list[float], float]:
     return result, minimum
 
 
-def performance_analytics(db: Session, portfolio_id: str) -> dict[str, Any]:
-    portfolio = get_portfolio(db, portfolio_id)
-    rows = _holding_rows(db, portfolio_id)
+def performance_analytics(
+    db: Session, portfolio_id: str, owner_id: str
+) -> dict[str, Any]:
+    portfolio = get_portfolio(db, portfolio_id, owner_id)
+    rows = _holding_rows(db, portfolio_id, owner_id)
     prices, all_dates = _price_map(db, [holding.security_id for holding, _ in rows])
     if not all_dates:
         raise ValueError("Portfolio has no market prices")
@@ -229,8 +237,8 @@ def performance_analytics(db: Session, portfolio_id: str) -> dict[str, Any]:
     }
 
 
-def exposure_analytics(db: Session, portfolio_id: str) -> dict[str, Any]:
-    snapshot = holdings_snapshot(db, portfolio_id)
+def exposure_analytics(db: Session, portfolio_id: str, owner_id: str) -> dict[str, Any]:
+    snapshot = holdings_snapshot(db, portfolio_id, owner_id)
     buckets: dict[str, dict[str, float]] = {
         "sector": defaultdict(float),
         "asset_class": defaultdict(float),
@@ -272,8 +280,11 @@ def exposure_analytics(db: Session, portfolio_id: str) -> dict[str, Any]:
     }
 
 
-def attribution_analytics(db: Session, portfolio_id: str) -> dict[str, Any]:
-    rows = _holding_rows(db, portfolio_id)
+def attribution_analytics(
+    db: Session, portfolio_id: str, owner_id: str
+) -> dict[str, Any]:
+    get_portfolio(db, portfolio_id, owner_id)
+    rows = _holding_rows(db, portfolio_id, owner_id)
     prices, all_dates = _price_map(db, [holding.security_id for holding, _ in rows])
     if not all_dates:
         return {"contributors": [], "as_of": date.today().isoformat(), "calculated_at": _utc_iso()}

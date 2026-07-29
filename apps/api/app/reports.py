@@ -17,12 +17,14 @@ from .analytics import (
 )
 
 
-def report_payload(db: Session, portfolio_id: str) -> dict[str, Any]:
+def report_payload(
+    db: Session, portfolio_id: str, owner_id: str
+) -> dict[str, Any]:
     return {
-        "holdings": holdings_snapshot(db, portfolio_id),
-        "performance": performance_analytics(db, portfolio_id),
-        "exposure": exposure_analytics(db, portfolio_id),
-        "attribution": attribution_analytics(db, portfolio_id),
+        "holdings": holdings_snapshot(db, portfolio_id, owner_id),
+        "performance": performance_analytics(db, portfolio_id, owner_id),
+        "exposure": exposure_analytics(db, portfolio_id, owner_id),
+        "attribution": attribution_analytics(db, portfolio_id, owner_id),
     }
 
 

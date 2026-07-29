@@ -7,6 +7,7 @@ os.environ["COPILOT_PROVIDER"] = "deterministic"
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.auth import require_demo_user  # noqa: E402
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 from app.seed import seed_demo  # noqa: E402
@@ -32,3 +33,12 @@ def client(database):
 @pytest.fixture()
 def auth_headers():
     return {"Authorization": "Bearer assetlens-demo-token"}
+
+
+@pytest.fixture()
+def set_authenticated_user():
+    def set_user(owner_id: str) -> None:
+        app.dependency_overrides[require_demo_user] = lambda: owner_id
+
+    yield set_user
+    app.dependency_overrides.pop(require_demo_user, None)

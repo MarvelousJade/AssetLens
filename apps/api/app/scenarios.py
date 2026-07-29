@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .analytics import holdings_snapshot
-from .models import AuditEvent, ScenarioRun
+from .models import AuditEvent, Portfolio, ScenarioRun
 
 PRESETS: dict[str, dict[str, Any]] = {
     "equity_decline": {
@@ -39,8 +39,10 @@ def scenario_catalog() -> list[dict[str, Any]]:
     ]
 
 
-def calculate_scenario(db: Session, run: ScenarioRun) -> dict[str, Any]:
-    snapshot = holdings_snapshot(db, run.portfolio_id)
+def calculate_scenario(
+    db: Session, run: ScenarioRun, owner_id: str
+) -> dict[str, Any]:
+    snapshot = holdings_snapshot(db, run.portfolio_id, owner_id)
     definition = PRESETS.get(run.scenario_type, {})
     custom = run.shocks or {}
     impacts: list[dict[str, Any]] = []
@@ -83,17 +85,25 @@ def calculate_scenario(db: Session, run: ScenarioRun) -> dict[str, Any]:
 
 
 def execute_scenario(run_id: str, db: Session) -> None:
-    run = db.scalar(select(ScenarioRun).where(ScenarioRun.id == run_id))
-    if run is None or run.status == "cancelled":
+    row = db.execute(
+        select(ScenarioRun, Portfolio.owner_id)
+        .join(Portfolio, ScenarioRun.portfolio_id == Portfolio.id)
+        .where(ScenarioRun.id == run_id)
+    ).one_or_none()
+    if row is None:
+        return
+    run, owner_id = row
+    if run.status == "cancelled":
         return
     try:
         run.status = "running"
         db.commit()
-        run.result = calculate_scenario(db, run)
+        run.result = calculate_scenario(db, run, owner_id)
         run.status = "completed"
         run.completed_at = datetime.now(UTC)
         db.add(
             AuditEvent(
+                actor_id=owner_id,
                 action="scenario.completed",
                 resource_type="scenario_run",
                 resource_id=run.id,

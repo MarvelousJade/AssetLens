@@ -26,8 +26,10 @@ def _number(row: dict[str, str], key: str, row_number: int, errors: list[dict[st
         return 0.0
 
 
-def import_holdings_csv(db: Session, portfolio_id: str, content: bytes) -> dict[str, Any]:
-    get_portfolio(db, portfolio_id)
+def import_holdings_csv(
+    db: Session, portfolio_id: str, owner_id: str, content: bytes
+) -> dict[str, Any]:
+    get_portfolio(db, portfolio_id, owner_id)
     if len(content) > 1_000_000:
         raise ValueError("CSV must be smaller than 1 MB.")
     content_hash = hashlib.sha256(content).hexdigest()
@@ -146,6 +148,7 @@ def import_holdings_csv(db: Session, portfolio_id: str, content: bytes) -> dict[
         db.add(record)
         db.add(
             AuditEvent(
+                actor_id=owner_id,
                 action="portfolio.csv_imported",
                 resource_type="portfolio",
                 resource_id=portfolio_id,

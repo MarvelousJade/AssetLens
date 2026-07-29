@@ -22,7 +22,7 @@ jobs:
           cache: pip
           cache-dependency-path: apps/api/pyproject.toml
       - run: pip install -e ".[dev]"
-      - run: ruff check app tests
+      - run: ruff check app tests scripts
       - run: pytest
       - run: alembic upgrade head
 

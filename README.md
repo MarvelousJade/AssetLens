@@ -18,6 +18,24 @@ Open [assetlens-web.onrender.com](https://assetlens-web.onrender.com) and choose
 free Neon PostgreSQL database, so the first request after inactivity can take a
 moment to wake up.
 
+## Verified outcomes
+
+- Prevented partial portfolio updates during CSV ingestion: a file containing
+  an invalid row left holdings unchanged, while an identical valid-file replay
+  was recognized without processing the import twice.
+- Validated portfolio analytics across 260 deterministic business-day
+  observations, with sector exposure weights reconciling to 100% and drawdown
+  calculations tracking the running peak.
+- Grounded all 3 tested research questions in the correct read-only analytics
+  tools with citations, and refused all 3 tested buy/sell/price-target prompts
+  before making any tool call.
+- Re-verified 18 automated tests locally on July 29, 2026: 16 API tests with
+  80% statement coverage across 933 Python statements, 1 React test, and
+  1 Chromium reviewer workflow covering entry, analytics, and scenario execution.
+
+No throughput, latency, or deployment-time improvement is claimed because the
+repository does not contain a recorded load test or manual deployment baseline.
+
 ## Quick start
 
 ### Local development
@@ -98,7 +116,7 @@ docs/         Architecture, security, and metric methodology
 ```powershell
 cd apps/api
 pytest
-ruff check .
+ruff check app tests scripts
 
 cd ..\web
 npm test
@@ -107,6 +125,19 @@ npm run build
 cd ..\..
 npm run test:e2e
 ```
+
+## Performance baseline
+
+Run the local API benchmark from `apps/api`:
+
+```powershell
+python scripts/benchmark_api.py --iterations 100 --report-iterations 10
+```
+
+The benchmark uses a temporary SQLite database, FastAPI's in-process test
+client, and the deterministic copilot. See [docs/performance.md](docs/performance.md)
+for the recorded baseline, methodology, and limits. These measurements are not
+production results or verified performance improvements.
 
 ## Disclaimer
 

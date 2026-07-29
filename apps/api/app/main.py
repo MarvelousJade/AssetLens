@@ -149,8 +149,7 @@ def update_portfolio(portfolio_id: str, payload: PortfolioUpdate, db: Db, user: 
 @app.get("/api/portfolios/{portfolio_id}/holdings")
 def get_holdings(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        return holdings_snapshot(db, portfolio_id)
+        return holdings_snapshot(db, portfolio_id, user)
     except (LookupError, ValueError) as exc:
         raise not_found(exc) from exc
 
@@ -163,9 +162,10 @@ async def import_portfolio(
     file: Annotated[UploadFile, File()],
 ) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        result = import_holdings_csv(db, portfolio_id, await file.read())
-    except (LookupError, ValueError) as exc:
+        result = import_holdings_csv(db, portfolio_id, user, await file.read())
+    except LookupError as exc:
+        raise not_found(exc) from exc
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if result.get("errors"):
         raise HTTPException(status_code=422, detail=result)
@@ -175,8 +175,7 @@ async def import_portfolio(
 @app.get("/api/portfolios/{portfolio_id}/performance")
 def get_performance(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        return performance_analytics(db, portfolio_id)
+        return performance_analytics(db, portfolio_id, user)
     except LookupError as exc:
         raise not_found(exc) from exc
     except ValueError as exc:
@@ -186,8 +185,7 @@ def get_performance(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
 @app.get("/api/portfolios/{portfolio_id}/risk")
 def get_risk(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        performance = performance_analytics(db, portfolio_id)
+        performance = performance_analytics(db, portfolio_id, user)
     except (LookupError, ValueError) as exc:
         raise not_found(exc) from exc
     risk_keys = {"annualized_volatility", "sharpe_ratio", "maximum_drawdown"}
@@ -202,8 +200,7 @@ def get_risk(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
 @app.get("/api/portfolios/{portfolio_id}/exposure")
 def get_exposure(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        return exposure_analytics(db, portfolio_id)
+        return exposure_analytics(db, portfolio_id, user)
     except LookupError as exc:
         raise not_found(exc) from exc
 
@@ -211,8 +208,7 @@ def get_exposure(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
 @app.get("/api/portfolios/{portfolio_id}/attribution")
 def get_attribution(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        return attribution_analytics(db, portfolio_id)
+        return attribution_analytics(db, portfolio_id, user)
     except LookupError as exc:
         raise not_found(exc) from exc
 
@@ -308,16 +304,17 @@ def ask_copilot(payload: CopilotQuestion, db: Db, user: User) -> dict[str, Any]:
         get_portfolio(db, payload.portfolio_id, user)
     except LookupError as exc:
         raise not_found(exc) from exc
-    return answer_question(db, payload.portfolio_id, payload.question)
+    return answer_question(db, payload.portfolio_id, user, payload.question)
 
 
 @app.post("/api/portfolios/{portfolio_id}/reports", status_code=201)
 def create_report(portfolio_id: str, db: Db, user: User) -> dict[str, Any]:
     try:
-        get_portfolio(db, portfolio_id, user)
-        payload = report_payload(db, portfolio_id)
+        payload = report_payload(db, portfolio_id, user)
         pdf = build_pdf(payload)
-    except (LookupError, ValueError) as exc:
+    except LookupError as exc:
+        raise not_found(exc) from exc
+    except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     report = Report(portfolio_id=portfolio_id, payload=payload, pdf_bytes=pdf)
     db.add(report)

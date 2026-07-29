@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .analytics import attribution_analytics, exposure_analytics, performance_analytics
 from .config import settings
-from .models import CopilotToolCall, ScenarioRun
+from .models import CopilotToolCall, Portfolio, ScenarioRun
 from .scenarios import PRESETS, calculate_scenario
 
 ADVICE_PATTERN = re.compile(
@@ -20,13 +20,15 @@ def _source(tool_name: str, portfolio_id: str, as_of: str) -> str:
     return f"assetlens://portfolio/{portfolio_id}/{tool_name}?as_of={as_of}"
 
 
-def _run_tool(db: Session, portfolio_id: str, name: str) -> tuple[dict[str, Any], str]:
+def _run_tool(
+    db: Session, portfolio_id: str, owner_id: str, name: str
+) -> tuple[dict[str, Any], str]:
     if name == "get_performance":
-        data = performance_analytics(db, portfolio_id)
+        data = performance_analytics(db, portfolio_id, owner_id)
     elif name == "get_exposure":
-        data = exposure_analytics(db, portfolio_id)
+        data = exposure_analytics(db, portfolio_id, owner_id)
     elif name == "get_attribution":
-        data = attribution_analytics(db, portfolio_id)
+        data = attribution_analytics(db, portfolio_id, owner_id)
     elif name == "compare_scenarios":
         comparisons = []
         for scenario_type, definition in PRESETS.items():
@@ -36,7 +38,7 @@ def _run_tool(db: Session, portfolio_id: str, name: str) -> tuple[dict[str, Any]
                 scenario_type=scenario_type,
                 shocks={},
             )
-            result = calculate_scenario(db, run)
+            result = calculate_scenario(db, run, owner_id)
             comparisons.append(
                 {
                     "scenario_type": scenario_type,
@@ -56,8 +58,10 @@ def _run_tool(db: Session, portfolio_id: str, name: str) -> tuple[dict[str, Any]
         rows = list(
             db.scalars(
                 select(ScenarioRun)
+                .join(Portfolio, ScenarioRun.portfolio_id == Portfolio.id)
                 .where(
                     ScenarioRun.portfolio_id == portfolio_id,
+                    Portfolio.owner_id == owner_id,
                     ScenarioRun.status == "completed",
                 )
                 .order_by(ScenarioRun.created_at.desc())
@@ -194,7 +198,7 @@ OPENAI_TOOLS = [
 
 
 def _openai_answer(
-    db: Session, portfolio_id: str, question: str
+    db: Session, portfolio_id: str, owner_id: str, question: str
 ) -> tuple[str, list[dict[str, Any]], list[dict[str, str]]]:
     from openai import OpenAI
 
@@ -231,7 +235,9 @@ and uncertainty. Keep the answer under 180 words.
             if arguments.get("portfolio_id") != portfolio_id:
                 output = {"error": "Unauthorized portfolio identifier."}
             else:
-                output, source_id = _run_tool(db, portfolio_id, call.name)
+                output, source_id = _run_tool(
+                    db, portfolio_id, owner_id, call.name
+                )
                 _record_tool_call(db, portfolio_id, question, call.name, source_id)
                 calls.append({"name": call.name, "arguments": arguments, "source_id": source_id})
                 citations.append({"id": source_id, "label": call.name, "as_of": str(output.get("as_of", ""))})
@@ -245,7 +251,9 @@ and uncertainty. Keep the answer under 180 words.
     raise RuntimeError("Copilot exceeded the read-only tool-call limit.")
 
 
-def answer_question(db: Session, portfolio_id: str, question: str) -> dict[str, Any]:
+def answer_question(
+    db: Session, portfolio_id: str, owner_id: str, question: str
+) -> dict[str, Any]:
     if ADVICE_PATTERN.search(question):
         return {
             "answer": (
@@ -264,7 +272,9 @@ def answer_question(db: Session, portfolio_id: str, question: str) -> dict[str, 
     )
     if use_openai:
         try:
-            answer, calls, citations = _openai_answer(db, portfolio_id, question)
+            answer, calls, citations = _openai_answer(
+                db, portfolio_id, owner_id, question
+            )
             return {
                 "answer": answer,
                 "mode": "openai",
@@ -283,7 +293,7 @@ def answer_question(db: Session, portfolio_id: str, question: str) -> dict[str, 
     calls = []
     citations = []
     for tool_name in selected:
-        data, source_id = _run_tool(db, portfolio_id, tool_name)
+        data, source_id = _run_tool(db, portfolio_id, owner_id, tool_name)
         _record_tool_call(db, portfolio_id, question, tool_name, source_id)
         tool_data[tool_name] = data
         calls.append(
