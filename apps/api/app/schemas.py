@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,8 +35,3 @@ class AlertCreate(BaseModel):
     symbol: str
     direction: Literal["above", "below"]
     threshold: float = Field(gt=0)
-
-
-class ApiMessage(BaseModel):
-    message: str
-    detail: dict[str, Any] | None = None

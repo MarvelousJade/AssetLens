@@ -259,15 +259,20 @@ def _run_scenario_local(run_id: str) -> None:
         execute_scenario(run_id, db)
 
 
-@app.get("/api/scenario-runs/{run_id}")
-def get_scenario_run(run_id: str, db: Db, user: User) -> dict[str, Any]:
+def _get_scenario_run(db: Session, run_id: str, owner_id: str) -> ScenarioRun:
     run = db.scalar(
         select(ScenarioRun)
         .join(Portfolio, ScenarioRun.portfolio_id == Portfolio.id)
-        .where(ScenarioRun.id == run_id, Portfolio.owner_id == user)
+        .where(ScenarioRun.id == run_id, Portfolio.owner_id == owner_id)
     )
     if run is None:
         raise HTTPException(status_code=404, detail="Scenario run not found")
+    return run
+
+
+@app.get("/api/scenario-runs/{run_id}")
+def get_scenario_run(run_id: str, db: Db, user: User) -> dict[str, Any]:
+    run = _get_scenario_run(db, run_id, user)
     return {
         "id": run.id,
         "portfolio_id": run.portfolio_id,
@@ -284,13 +289,7 @@ def get_scenario_run(run_id: str, db: Db, user: User) -> dict[str, Any]:
 
 @app.post("/api/scenario-runs/{run_id}/cancel")
 def cancel_scenario_run(run_id: str, db: Db, user: User) -> dict[str, str]:
-    run = db.scalar(
-        select(ScenarioRun)
-        .join(Portfolio, ScenarioRun.portfolio_id == Portfolio.id)
-        .where(ScenarioRun.id == run_id, Portfolio.owner_id == user)
-    )
-    if run is None:
-        raise HTTPException(status_code=404, detail="Scenario run not found")
+    run = _get_scenario_run(db, run_id, user)
     if run.status not in {"pending", "running"}:
         raise HTTPException(status_code=409, detail="Only pending or running scenarios can be cancelled.")
     run.status = "cancelled"
