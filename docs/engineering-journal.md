@@ -110,13 +110,67 @@ retained. The API's missing-history response is expected; the UI has coupled
 holdings display to availability of historical analytics.
 
 **Provenance:** Naturally encountered on the pre-fix rework baseline. No
-intentional defect was introduced. A UI fix and regression checks are pending;
-no fix or completed verification is claimed in this entry.
+intentional defect was introduced. The correction and regression tests were
+verified together before committing this increment.
 
 **Tradeoffs and next step:** Handle empty holdings explicitly and keep them
 usable for import rather than fabricate performance metrics. Test creation,
 portfolio switching, and analytics failures. Do not replace every dashboard
 component to repair this data-loading boundary.
+
+**Increment acceptance criteria:** Creating an empty portfolio displays the new
+selection and no seeded holdings, retains import controls, and avoids requesting
+performance for empty holdings. A valid import enables analytics and report export.
+If a nonempty portfolio's analytics fail, show only that selected portfolio's
+holdings and disable export, never retain another portfolio's snapshot. Added
+component regressions for these journeys before changing the implementation.
+
+**Pre-fix verification:** `npm test -- app/components/Dashboard.test.tsx` failed
+both tests in 22.37 seconds. Creation did not update the displayed selection;
+switching to a portfolio with failed analytics retained the `SEEDED` holding.
+
+**Fix:** Load the portfolio list and holdings before requesting historical
+analytics; skip those analytics for empty holdings. Clear the previous snapshot
+on selection changes, retain the selected holdings on analytics failure, and
+render explicit empty/unavailable overview states. Disable report export without
+analytics and scenario execution without holdings. A monotonically increasing
+request ID prevents an older refresh from replacing a newer selection, including
+late errors/finalizers. A third component test covers controlled out-of-order
+completion without timing-dependent sleeps. Corrected demo wording to describe
+an editable shared demonstration rather than a read-only workspace.
+
+**Manual verification:** In the isolated browser, the previously created empty
+portfolio displayed its own selection and empty overview, with export disabled.
+Opened Holdings and uploaded `.tmp/rework-browser-holdings.csv` containing one
+fictional CAD holding. The UI reported one atomic import, showed only `REWORK`
+(quantity 2, price $12, value $24), enabled export, and displayed no global error.
+The user's runtime database and tracked screenshots remained untouched. Stopped
+both owned demo servers before running the production build to avoid concurrent
+writes to `.next`.
+
+**Verification attempt:** All four frontend tests passed (three dashboard
+regressions and existing entry test), but standalone TypeScript checking rejected
+an unsupported `exact` option in `getByRole`. String `name` matching already
+provides the intended exact match. Removed the extra option before committing;
+this was a test-authoring mistake within the increment, not an application bug.
+Rerun frontend tests and type checking. The Next.js 16.2.11 production build
+passed with compilation in 4.8 seconds and built-in TypeScript checking in
+4.2 seconds. The final `npm test && npx tsc --noEmit` rerun passed all four
+frontend tests in 3.68 seconds and standalone type checking. Browser report download
+remains a separate open investigation; enabled export alone does not prove a
+saved PDF.
+
+**Lesson and interview explanation:** An expected missing-history API response
+must not make a new portfolio unusable or relabel stale data as current. Separate
+required holdings from optional analytics, expose deliberate empty states, and
+protect UI state from superseded responses. The tradeoff is two-stage loading
+rather than one all-or-nothing request group; do not invent zero performance.
+
+**References:** `apps/web/app/components/Dashboard.tsx`, `Dashboard.test.tsx`,
+`apps/web/app/page.tsx`, `docs/security.md`. Commit subject:
+`fix: keep empty portfolios usable for CSV import`; its hash will be recorded in
+the next journal update. `docs/interview-guide.md` provides concise study outlines and marks open
+investigations without inventing personal learning or production evidence.
 
 ## CSV validation: reject non-finite values and malformed rows
 
@@ -182,8 +236,7 @@ should include special numeric values and parser output shapes, and assert that
 all affected tables remain unchanged on rejection.
 
 **References:** `apps/api/app/imports.py`, `apps/api/tests/test_imports.py`,
-`docs/api.md`. Planned commit: `fix: reject non-finite and malformed CSV input`;
-its hash will be recorded in the next journal update.
+`docs/api.md`. Commit: `cef57d0` (`fix: reject non-finite and malformed CSV input`).
 
 **Provenance:** Existing implementation defects reproduced during ordinary rework,
 not intentionally introduced debugging exercises. Fixed within an uncommitted

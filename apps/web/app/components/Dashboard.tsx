@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, downloadReport } from "../api";
 import type {
   Attribution,
@@ -166,32 +166,50 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [researchSearch, setResearchSearch] = useState("");
+  const loadRequest = useRef(0);
 
   const loadPortfolio = useCallback(async (selectedId: string, quiet = false) => {
-    if (!quiet) setLoading(true);
-    else setRefreshing(true);
+    const request = ++loadRequest.current;
+    if (!quiet) {
+      setLoading(true);
+      setSnapshot(null);
+      setScenarioRun(null);
+      setImportMessage("");
+    } else setRefreshing(true);
+    setPerformance(null);
+    setExposure(null);
+    setAttribution(null);
     setError("");
     try {
-      const [portfolioRows, nextSnapshot, nextPerformance, nextExposure, nextAttribution, scenarios] =
-        await Promise.all([
-          apiFetch<Portfolio[]>("/api/portfolios"),
-          apiFetch<Snapshot>(`/api/portfolios/${selectedId}/holdings`),
-          apiFetch<Performance>(`/api/portfolios/${selectedId}/performance`),
-          apiFetch<Exposure>(`/api/portfolios/${selectedId}/exposure`),
-          apiFetch<Attribution>(`/api/portfolios/${selectedId}/attribution`),
-          apiFetch<ScenarioDefinition[]>("/api/scenarios/catalog"),
-        ]);
+      const [portfolioRows, nextSnapshot, scenarios] = await Promise.all([
+        apiFetch<Portfolio[]>("/api/portfolios"),
+        apiFetch<Snapshot>(`/api/portfolios/${selectedId}/holdings`),
+        apiFetch<ScenarioDefinition[]>("/api/scenarios/catalog"),
+      ]);
+      if (request !== loadRequest.current) return;
       setPortfolios(portfolioRows);
       setSnapshot(nextSnapshot);
+      setScenarioCatalog(scenarios);
+      // Empty holdings are usable for import without historical analytics.
+      if (nextSnapshot.holdings.length === 0) return;
+      const [nextPerformance, nextExposure, nextAttribution] = await Promise.all([
+        apiFetch<Performance>(`/api/portfolios/${selectedId}/performance`),
+        apiFetch<Exposure>(`/api/portfolios/${selectedId}/exposure`),
+        apiFetch<Attribution>(`/api/portfolios/${selectedId}/attribution`),
+      ]);
+      if (request !== loadRequest.current) return;
       setPerformance(nextPerformance);
       setExposure(nextExposure);
       setAttribution(nextAttribution);
-      setScenarioCatalog(scenarios);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not load portfolio analytics.");
+      if (request === loadRequest.current) {
+        setError(caught instanceof Error ? caught.message : "Could not load portfolio analytics.");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (request === loadRequest.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -213,6 +231,7 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   useEffect(() => {
     void loadPortfolio(portfolioId);
+    return () => { loadRequest.current += 1; };
   }, [loadPortfolio, portfolioId]);
 
   useEffect(() => {
@@ -309,18 +328,22 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   }
 
   if (loading) return <LoadingDashboard />;
-  if (!snapshot || !performance || !exposure || !attribution) {
+  if (!snapshot) {
     return (
       <div className="fatal-state">
         <img src="/mark.svg" alt="" />
         <h1>Portfolio analytics unavailable</h1>
         <p>{error || "The portfolio does not have enough market data yet."}</p>
-        <button className="primary-button" onClick={() => void loadPortfolio("demo-canadian-growth")}>Reload demo</button>
+        <button className="primary-button" onClick={() => {
+          if (portfolioId === "demo-canadian-growth") void loadPortfolio(portfolioId);
+          else setPortfolioId("demo-canadian-growth");
+        }}>Reload demo</button>
       </div>
     );
   }
 
-  const metrics = performance.metrics;
+  const metrics = performance?.metrics;
+  const hasAnalytics = Boolean(performance && exposure && attribution);
   const currentPortfolio = portfolios.find((item) => item.id === portfolioId);
 
   return (
@@ -346,7 +369,7 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
         </div>
         <div className="user-card">
           <span>SF</span>
-          <div><strong>Demo Analyst</strong><small>Read-only workspace</small></div>
+          <div><strong>Demo Analyst</strong><small>Demo workspace</small></div>
           <button onClick={onSignOut} title="Sign out">×</button>
         </div>
       </aside>
@@ -374,7 +397,7 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
             <button className="icon-button" onClick={() => void loadPortfolio(portfolioId, true)} title="Refresh">
               <span className={refreshing ? "rotating" : ""}><Icon name="refresh" /></span>
             </button>
-            <button className="export-button" onClick={exportReport} disabled={reporting}>
+            <button className="export-button" onClick={exportReport} disabled={reporting || !hasAnalytics}>
               {reporting ? <span className="spinner small" /> : <Icon name="download" />}
               Export report
             </button>
@@ -399,10 +422,20 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                       "Screen the coverage universe and configure monitoring."}
               </p>
             </div>
-            <div className="asof-chip"><Icon name="clock" size={15} /> Calculated {new Date(performance.calculated_at).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}</div>
+            <div className="asof-chip"><Icon name="clock" size={15} /> Calculated {new Date(performance?.calculated_at ?? snapshot.calculated_at).toLocaleString("en-CA", { dateStyle: "medium", timeStyle: "short" })}</div>
           </div>
 
-          {tab === "overview" && (
+          {tab === "overview" && !hasAnalytics && (
+            <section className="card compact-card">
+              <h2>{snapshot.holdings.length === 0 ? "Your portfolio is ready for holdings" : "Portfolio analytics unavailable"}</h2>
+              <p>{snapshot.holdings.length === 0
+                ? "Import a holdings CSV to calculate performance and risk."
+                : "You can inspect holdings while analytics are unavailable. Try refreshing to retry."}</p>
+              <button className="primary-button" onClick={() => setTab("holdings")}>View holdings and import</button>
+            </section>
+          )}
+
+          {tab === "overview" && performance && exposure && attribution && metrics && (
             <div className="overview-grid">
               <section className="metric-strip">
                 <MetricCard label="Portfolio value" value={currency.format(snapshot.summary.market_value)} detail={`${snapshot.holdings.length} positions · CAD`} />
@@ -482,7 +515,9 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                   <div><div className="eyebrow">POSITION DETAIL</div><h2>Current holdings</h2></div>
                   <span className="total-value">{currency.format(snapshot.summary.market_value)} total</span>
                 </div>
-                <HoldingsTable holdings={snapshot.holdings} />
+                {snapshot.holdings.length === 0
+                  ? <p className="empty-copy">No holdings yet. Import a CSV to get started.</p>
+                  : <HoldingsTable holdings={snapshot.holdings} />}
               </section>
               <div className="two-column">
                 <section className="card import-card">
@@ -519,7 +554,7 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     </label>
                   ))}
                 </div>
-                <button className="run-button" onClick={runScenario}>
+                <button className="run-button" onClick={runScenario} disabled={snapshot.holdings.length === 0}>
                   <Icon name="scenario" /> Run scenario
                 </button>
               </section>

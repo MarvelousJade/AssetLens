@@ -4,8 +4,10 @@
 
 The browser is untrusted. Portfolio ownership is checked in the API, not inferred
 from a frontend route or request body. The included demo token is deliberately
-public and grants access only to seeded demonstration data; production
-deployments must replace it with OIDC/JWT validation and a per-user subject.
+public and grants access to a shared demonstration workspace, including portfolio
+creation, CSV imports, scenario execution, and report generation. It is not a
+read-only workspace: use fictional data only. Production deployments must replace
+it with OIDC/JWT validation and a per-user subject.
 The resolved owner is a required service-layer argument for imports, analytics,
 scenarios, copilot tools, and reports; there is no implicit demo-owner fallback
 inside those paths.
