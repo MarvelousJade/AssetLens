@@ -51,7 +51,7 @@ between observations. Do not change expected results to fit the implementation.
 
 ## Exercise 2: cancellation followed by a late result
 
-**Faulty checkpoint:** To be recorded after failure verification.
+**Faulty checkpoint:** `8255540` (verified intentional failure).
 
 **Simulated report:** “Cancelling a scenario appeared to work, but a later status
 read showed a result and a different terminal timestamp.” The report is simulated;

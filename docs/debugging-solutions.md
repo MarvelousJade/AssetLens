@@ -78,7 +78,12 @@ is not interrupted, and crashed-worker recovery remains outside this change.
 
 **Verification:** New cancelled-timestamp baseline case passed in 0.33 seconds;
 the intentional faulty run had three failures and ten passes as recorded above.
-Correction results are pending.
+**Faulty checkpoint:** `8255540`. Restored the guarded terminal write in the
+working tree for a separate fix commit. Lint and all 56 API tests passed in
+5.09 seconds with 85% coverage; SQLite migration upgrade/drift checks passed.
+All eight frontend tests (5.03 seconds), standalone TypeScript checking, and
+production build passed; both isolated Chromium journeys passed in 18.7 seconds.
+The corrected state is eligible for integration after commit/diff review.
 
 **Lesson/interview outline:** Persist lifecycle invariants as write predicates.
 Explain the controlled interleaving, cancellation's preserved state/timestamp,

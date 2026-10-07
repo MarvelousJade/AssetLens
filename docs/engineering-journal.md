@@ -522,8 +522,13 @@ refactor mistake, not an arbitrary crash or unrelated broken code.
 calculation boundary and assert status, timestamp, result/error, and completion
 audit. The new timestamp regression passed before the fault was introduced.
 
-**Fix plan/tradeoffs:** Preserve the faulty checkpoint, then restore the terminal
-predicate in a separate fix commit. Fresh reads without guarded writes still
+**Fix/tradeoffs:** Preserved faulty checkpoint `8255540`, then restored the terminal
+predicate for a separate fix commit. API lint and all 56 tests passed in 5.09
+seconds with 85% statement coverage; SQLite migration upgrade/drift checks passed.
+All eight frontend tests passed in 5.03 seconds; standalone types and production
+build passed (2.7-second compilation, 4.6-second built-in type check); both isolated
+Chromium journeys passed in 18.7 seconds, including the saved PDF. No intentional
+failure remains in these checks before integration. Fresh reads without guarded writes still
 race; no new lock, queue, schema, or lease is needed for this invariant. Cancellation
 cannot interrupt calculation, and worker-crash recovery remains unimplemented.
 
