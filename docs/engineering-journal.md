@@ -589,8 +589,66 @@ Celery/Redis workers, containers, external providers, deployed security, or
 production behavior. Concurrent import guarantees, shared imported-price ownership,
 FX conversion/sparse-history policy, and crashed-worker recovery remain documented
 limitations/future decisions, not claims of production readiness. The original
-TestClient dependency warning is not resolved by this work. Learner personal
-investigation is intentionally unfilled until study is actually performed.
+TestClient dependency warning was still present at this checkpoint; the follow-up
+below records its maintenance fix. Learner personal investigation is intentionally
+unfilled until study is actually performed.
+
+## TestClient dependency maintenance
+
+**Problem/provenance:** A real dependency-maintenance warning remained in the
+verified API tests; this is not an intentional exercise defect. FastAPI 0.140.0 /
+Starlette 1.3.1 reported that its TestClient's `httpx` fallback was deprecated.
+All 56 tests previously passed, but the development dependency declaration had
+not adopted the preferred client.
+
+**Investigation:** `python -m pip show fastapi starlette httpx httpx2` showed
+`httpx` 0.28.1 and no `httpx2`. Reading installed `starlette/testclient.py` showed
+that it first imports `httpx2` and warns when falling back to `httpx`. The custom
+warning inherits `UserWarning`, so a generic `DeprecationWarning`-only policy
+would not catch this case. Package-index inspection found stable `httpx2` 2.x
+releases, including 2.13.1.
+
+**Reproduction/regression:** Added a message-specific error filter in
+`apps/api/pyproject.toml`, then ran `.venv\Scripts\python.exe -m pytest` before
+installing the new client. Pytest exited 4 while importing `tests/conftest.py`,
+with the exact Starlette fallback warning as its error. This is an observed
+failure, not a simulation, and the persistent filter prevents its silent return.
+
+**Fix/decision:** Declare `httpx2>=2,<3` under the API development extras, where
+TestClient belongs. Keep runtime `httpx>=0.28,<1`, which the OpenAI SDK also uses;
+do not replace production transport or unnecessarily pin/downgrade the framework.
+Do not ignore warnings. The narrow error filter avoids making unrelated third-party
+warnings a permanent project policy; an additional strict verification run checks
+all warnings for this change.
+
+**Verification:** From `apps/api` on Windows/Python 3.12.10:
+
+```text
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pip check
+.venv\Scripts\python.exe -W error -c "from fastapi.testclient import TestClient; import starlette.testclient as tc; assert tc.httpx.__name__ == 'httpx2'"
+.venv\Scripts\python.exe -m ruff check app tests scripts
+.venv\Scripts\python.exe -m pytest -W error
+```
+
+Installed `httpx2` 2.13.1, `httpcore2` 2.13.1, and `truststore` 0.10.4; existing
+runtime packages were already satisfied. `pip check` found no broken requirements.
+The strict import check confirmed Starlette selects `httpx2` without a warning.
+Ruff passed. All 56 API tests passed with `-W error` in 5.81 seconds and 85%
+statement coverage (940 statements), with no warning summary. From the repository
+root, `npm run test:e2e` passed both isolated Chromium journeys in 38.9 seconds,
+including saved PDF verification. Frontend source and dependency manifests are
+unchanged; their tests, type checking, and production build passed in the preceding
+verification of `3f62ffb`. The final working diff contains only the API manifest
+and this journal; whitespace checks passed and no environment/generated artifacts
+are included. Runtime environment files are not edited.
+
+**Tradeoff/lesson:** Both client distributions exist in development because
+TestClient and the runtime SDK use different packages. Keep their ownership clear
+and bound the added major version. A warning can identify incomplete dependency
+metadata even when functional tests pass; reproduce it as a failure before fixing
+the dependency, rather than hiding the signal. This does not verify live OpenAI,
+PostgreSQL, Celery, containers, or production behavior.
 
 ## Learner investigation notes
 
