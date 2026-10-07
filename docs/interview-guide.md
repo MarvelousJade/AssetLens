@@ -137,9 +137,7 @@ of concurrent idempotency; why ownership belongs in resource queries; how drawdo
 tracks the running peak; and why a slow old request must not replace a newer
 portfolio's display.
 
-Improve next: verify PDF download,
-sparse-history policies, and imported-price
-ownership. Decide whether to restrict inputs to CAD or implement actual FX
+Improve next: define sparse-history policies and imported-price ownership. Decide whether to restrict inputs to CAD or implement actual FX
 conversion; summing arbitrary currencies is not a production accounting model.
 
 For production: real authentication, tenant/data boundaries, numerical/market-data
@@ -176,9 +174,10 @@ boundary tests before describing the workflow as complete.
 **Demo:** Follow README local setup using the API virtualenv; run the web app.
 Enter the workspace, show benchmark comparison, open Holdings, then run Technology
 drawdown. Explain the assumptions before interpreting the result. Show the CSV
-regression tests and journal. Try PDF export only after checking its browser path;
-the initial native browser download was canceled and is not yet verified. Avoid
-using personal financial data or claiming the shared demo workspace is read-only.
+regression tests and journal. Export a report. The isolated Chromium workflow
+verified a saved PDF after import; an earlier native capture was canceled and
+remains in the journal as an unsuccessful attempt. Avoid using personal financial
+data or claiming the shared demo workspace is read-only.
 
 **One-page talking points:**
 
@@ -189,6 +188,7 @@ using personal financial data or claiming the shared demo workspace is read-only
   passing tests and 85% statement coverage.
 - Decision: preserve useful behavior; optional infrastructure is not required locally.
 - Tradeoff: reproducible static data and simplified shocks, not live financial accuracy.
-- Limits: browser export needs further verification; no
-  production impact or performance improvement claim.
+- Demonstration evidence: two isolated Chromium journeys passed, including a saved PDF.
+- Limits: simplified data/model assumptions; no production impact or performance
+  improvement claim.
 - Personal learning: fill in only after reproducing and recording your own study.

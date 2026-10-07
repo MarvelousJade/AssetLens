@@ -61,13 +61,14 @@ separate the required local path from those extensions.
   existing Git identity (`d1b73ef`).
 - [x] Inspect source, current documentation, test contracts, and CI commands.
 - [x] Record API lint/tests, frontend tests/type checks/build baseline results.
-- [ ] Verify the browser workflow without overwriting tracked screenshots or
-  touching the user's runtime database.
+- [x] Verify two isolated Chromium workflows, including import and saved PDF,
+  without overwriting tracked screenshots or touching the user's runtime database.
 - [x] Define and reproduce the first validation increment: 11 failures and 3
   passes before the fix; 43 total API tests pass after the fix.
-- [ ] Deliver each behavior with tests, journal evidence, diff review, and a
-  focused commit.
-- [ ] Prepare the interview guide and isolated debugging exercises.
+- [x] Deliver validation, empty-portfolio loading, and scenario lifecycle/display
+  behavior with tests, journal evidence, diff review, and focused commits.
+- [x] Prepare the concise interview guide with five evidence-based story outlines.
+- [ ] Prepare isolated debugging exercises after the verified working baseline.
 - [ ] Integrate only corrected learning-branch state using a merge commit;
   rerun checks on the resulting rework branch.
 
@@ -97,12 +98,13 @@ scope decisions rather than speculative concurrency/schema changes.
 
 - CSV finiteness and row-shape gaps were reproduced and fixed in the first
   increment, with 15 new regression/compatibility cases.
-- Scenario execution writes terminal state after calculation without an apparent
-  conditional cancellation check; verify cancellation and repeated delivery.
-- The browser describes the demo as read-only despite exposing creation/import
-  controls; documentation and permissions must accurately reflect behavior.
-- README test counts differ between its historical summary and current-result
-  section. Fresh results must be revision-specific, not silently assumed current.
+- Scenario cancellation/repeated-delivery failures were reproduced and fixed
+  with conditional database transitions. UI terminal/paused states were also
+  corrected; API and component regression tests pass.
+- Demo wording now accurately describes a shared editable demonstration and
+  warns against sensitive uploads.
+- README verification counts now match the recorded rework runs. Historical
+  benchmark evidence remains separate from current correctness verification.
 
 ## Branch and delivery policy
 

@@ -378,6 +378,7 @@ Use explicit terminal/error/paused presentation, and guard late work independent
 of the user's current selection.
 
 **References:** `apps/web/app/components/Dashboard.tsx` and `Dashboard.test.tsx`.
+Commit: `b6fe87b` (`fix: distinguish scenario terminal state from polling activity`).
 
 **Interview explanation:** The backend could report a terminal job while the UI
 still showed a running spinner. Reproductions separated server state from polling
@@ -388,6 +389,48 @@ new workspace. Eight frontend tests, types, and production build passed.
 **Provenance:** Investigation of existing UI behavior during ordinary development,
 not an intentionally introduced learning-branch defect. Controlled API responses
 are test fixtures, not reports of real users or production events.
+
+## Browser workflow isolation and report verification
+
+**Hurdle:** The existing Playwright configuration could attach to already-running
+servers, use the user's default runtime database, and overwrite tracked screenshots.
+Its Python command also did not prefer the installed project virtualenv. Earlier
+native PDF download was cancelled, so an independent saved-file check is needed;
+do not assume immediate object-URL revocation is the root cause without evidence.
+
+**Acceptance:** Browser tests own dedicated API/web ports and a temporary SQLite
+database, use deterministic/local services, save artifacts in ignored test output,
+and fail rather than reuse an unrelated server. Exercise seeded analytics/scenario
+and creation → empty holdings → CSV import → real saved PDF with signature/size
+checks. Preserve existing tracked screenshots and the runtime database.
+
+**Approach:** Detect the platform's project virtualenv interpreter (or use
+`API_PYTHON`/system Python for CI), create the ignored `.tmp` directory, and assign
+a per-process test database. Replace screenshot destinations with test output
+paths. Add the creation/import/download browser journey. Run `npm run test:e2e`
+from the repository root. Both Chromium journeys passed in 25.8 seconds. The
+new journey downloaded and saved a PDF, checked `%PDF` bytes and size >2 KB,
+and exercised creation, empty holdings, import, and export. No application PDF
+fix was necessary: the earlier native capture cancellation alone did not prove
+a defect. Its cause was not established, so do not invent a root cause.
+
+**Tradeoffs:** Dedicated ports fail if occupied rather than borrowing a server
+with unknown configuration. Each run leaves an ignored test database that can be
+removed when no tests are active. Native browser capture and Playwright download
+results may differ; report the actual saved-file result rather than infer a
+production defect from a tool failure.
+
+**References:** `playwright.config.ts`, `tests/e2e/demo.spec.ts`.
+
+**Provenance:** Existing test-isolation shortcomings and an observed local download
+capture failure, not intentionally introduced application defects. Successful
+saved-file verification is from the independent isolated Chromium test.
+
+**Lesson and interview explanation:** Test tooling is part of reproducibility.
+Owning the server/database/artifact lifecycle prevents a successful run from
+silently depending on someone else's local state or modifying repository images.
+An unsuccessful capture is evidence to investigate, not permission to invent a
+bug or performance claim.
 
 ## Learner investigation notes
 
