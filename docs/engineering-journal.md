@@ -432,6 +432,121 @@ silently depending on someone else's local state or modifying repository images.
 An unsuccessful capture is evidence to investigate, not permission to invent a
 bug or performance claim.
 
+## Intentional debugging exercises: verified baseline and provenance
+
+**Baseline:** `b990b6b` on `shaoyu/rework`, with 54 API tests, eight frontend tests,
+TypeScript/build checks, isolated SQLite migration checks, and two Chromium
+journeys passing. Learner-facing instructions were written in
+`docs/debugging-exercises.md` before introducing defects or publishing solutions.
+
+**Exercise preparation:** Added a full drawdown-path regression. Against the
+correct baseline, `pytest tests/test_debugging_regressions.py --no-cov --tb=short`
+passed (one test, 0.50 seconds). Existing drawdown behavior on main and rework is
+already correct; a later exercise correction must not be described as fixing a
+naturally discovered baseline defect.
+
+**Policy:** Introduce two plausible mistakes only on `shaoyu/learning`, reproduce
+failures, preserve each faulty commit, then correct each in a separate normal fix
+commit. Keep symptoms/reproduction apart from diagnoses. Continue correction and
+integration independently of learner progress unless a pause is requested. Merge
+only the corrected state with a merge commit; main remains untouched.
+
+**Investigation limitation:** Implementation-side diagnostic notes are not
+learner personal investigation. Hypothetical reports/consequences are educational,
+not production usage or incidents. Fault/fix IDs and actual results will be added
+after each checkpoint.
+
+### Exercise 1 checkpoint — implementation-side spoilers
+
+**Problem/reproduction:** Full drawdown-path values diverged after an earlier high.
+Focused command: `pytest tests/test_debugging_regressions.py tests/test_analytics.py
+--no-cov --tb=short`; run on `shaoyu/learning` with the project virtualenv.
+
+**Investigation/evidence:** Correct baseline passed the new test. After the
+intentional one-line iteration change, lint passed but tests had two failures and
+six passes in 1.11 seconds. Four of seven path points differed; the existing
+minimum test returned -0.12 rather than -0.2. Full-path assertions identify the
+first divergence instead of testing only an aggregate. No fictional unsuccessful
+investigation is attributed to the learner.
+
+**Root cause:** The intentional change compares each observation to the first
+value rather than preserving the maximum from previous iterations. Partial
+recoveries erase relevant peak history.
+
+**Fix:** Restored the running maximum for a separate fix commit after preserving
+the verified faulty checkpoint. This restores baseline behavior already correct
+on main and rework; it does not repair a defect previously affecting those branches.
+
+**Tradeoffs/lesson:** No meaningful architecture tradeoff; a streaming accumulator
+is linear time with constant extra state, while rescanning prefixes is quadratic.
+Test complete intermediate output, not just final aggregates.
+
+**Verification/provenance:** Expected failures are verified intentional exercise
+evidence, not a naturally discovered bug or production incident. Faulty checkpoint
+`4d8e3e2` is preserved. Restored the correct accumulator in the working tree;
+API lint passed and all 55 tests passed in 4.57 seconds with 85% statement
+coverage before the separate fix commit. See `docs/debugging-solutions.md` for separate
+progressive hints and explanation, and `docs/debugging-exercises.md` for symptoms.
+Separate correction commit: `2778165` (`fix: preserve running peaks when calculating drawdown`).
+
+**Interview explanation:** State that the defect was intentionally introduced;
+explain how hand-calculated points reveal lost iteration state and how the
+restored accumulator plus full-path regression prevents it.
+
+### Exercise 2 preparation
+
+Added `test_cancelled_run_keeps_timestamp_and_discards_late_result`, asserting
+that cancellation committed during calculation retains its timestamp, status,
+empty result/error, and absence of completion audit. With the guarded executor
+still correct, `pytest tests/test_debugging_regressions.py -k cancelled --no-cov
+--tb=short` passed (one test, one deselected, 0.33 seconds). This baseline result
+precedes the intentional lifecycle mistake. It restores/tests existing correct
+rework behavior, not a newly discovered main-branch defect.
+
+### Exercise 2 checkpoint — implementation-side spoilers
+
+**Problem/reproduction:** After cancellation, a late worker outcome can change
+terminal status/timestamp and publish a result. Run
+`pytest tests/test_debugging_regressions.py tests/test_scenarios.py --no-cov --tb=short`
+on `shaoyu/learning`. Lint passed; tests produced three expected failures and ten
+passes in 1.64 seconds. Committed cancellation became completed on late success
+or failed on late error. The new timestamp test fails first at terminal status,
+so do not claim it reached and observed later assertions on the faulty code.
+
+**Intentional root cause:** Removed final-write status eligibility from the
+already-correct rework helper. An unconditional ID-based update can overwrite
+committed cancellation despite earlier reads. This is a plausible persistence
+refactor mistake, not an arbitrary crash or unrelated broken code.
+
+**Investigation plan:** Inspect separate-session stored state at the controlled
+calculation boundary and assert status, timestamp, result/error, and completion
+audit. The new timestamp regression passed before the fault was introduced.
+
+**Fix/tradeoffs:** Preserved faulty checkpoint `8255540`, then restored the terminal
+predicate for a separate fix commit. API lint and all 56 tests passed in 5.09
+seconds with 85% statement coverage; SQLite migration upgrade/drift checks passed.
+All eight frontend tests passed in 5.03 seconds; standalone types and production
+build passed (2.7-second compilation, 4.6-second built-in type check); both isolated
+Chromium journeys passed in 18.7 seconds, including the saved PDF. No intentional
+failure remains in these checks before integration. Fresh reads without guarded writes still
+race; no new lock, queue, schema, or lease is needed for this invariant. Cancellation
+cannot interrupt calculation, and worker-crash recovery remains unimplemented.
+
+**Provenance:** Intentionally introduced only on the learning branch after a
+verified working rework baseline. The eventual fix restores that baseline. It
+must not be represented as a new naturally discovered main incident; ordinary
+preexisting lifecycle findings are documented separately.
+
+**References/lesson:** `scenarios._finish_scenario`,
+`tests/test_debugging_regressions.py`, `tests/test_scenarios.py`, separate learner
+instructions and spoiler material. Enforce state eligibility at write time and
+inspect the winning transition before publishing an audit.
+
+**Interview explanation:** Describe this as an intentional exercise showing a
+late result after a terminal transition. Explain how a controlled interleaving
+and persisted-state assertions distinguish object state from write eligibility.
+No personal study, production consequence, or unperformed verification is claimed.
+
 ## Learner investigation notes
 
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
