@@ -27,6 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "httpx2>=2,<3",
   "pytest>=8.4,<10",
   "pytest-cov>=6,<8",
   "ruff>=0.12,<1",
@@ -40,6 +41,8 @@ include = ["app*"]
 testpaths = ["tests"]
 addopts = "-q -p no:cacheprovider --cov=app --cov-report=term-missing"
 cache_dir = ".tmp/pytest-cache"
+# Reject the deprecated TestClient fallback rather than hiding its warning.
+filterwarnings = ["error:Using `httpx` with `starlette.testclient` is deprecated:Warning"]
 
 [tool.ruff]
 line-length = 110

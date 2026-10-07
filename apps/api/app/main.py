@@ -14,7 +14,7 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from .analytics import (
@@ -290,11 +290,16 @@ def get_scenario_run(run_id: str, db: Db, user: User) -> dict[str, Any]:
 @app.post("/api/scenario-runs/{run_id}/cancel")
 def cancel_scenario_run(run_id: str, db: Db, user: User) -> dict[str, str]:
     run = _get_scenario_run(db, run_id, user)
-    if run.status not in {"pending", "running"}:
+    cancelled = db.execute(
+        update(ScenarioRun)
+        .where(ScenarioRun.id == run.id, ScenarioRun.status.in_(["pending", "running"]))
+        .values(status="cancelled", completed_at=datetime.now(UTC))
+    )
+    if cancelled.rowcount != 1:
+        db.rollback()
         raise HTTPException(status_code=409, detail="Only pending or running scenarios can be cancelled.")
-    run.status = "cancelled"
     db.commit()
-    return {"id": run.id, "status": run.status}
+    return {"id": run.id, "status": "cancelled"}
 
 
 @app.post("/api/copilot/questions")

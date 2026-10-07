@@ -33,7 +33,7 @@ function Login({ onEnter }: { onEnter: () => void }) {
         <div className="login-box">
           <div className="demo-chip"><i /> SEEDED DEMONSTRATION</div>
           <h2>Explore AssetLens</h2>
-          <p>No account or market-data subscription required. Enter a read-only workspace with a complete Canadian portfolio.</p>
+          <p>No account or market-data subscription required. Explore a shared demonstration workspace with a complete Canadian portfolio.</p>
           <div className="demo-summary">
             <div className="demo-avatar">CG</div>
             <div><strong>Canadian Growth & Income</strong><span>8 holdings · S&amp;P/TSX benchmark</span></div>
@@ -42,7 +42,7 @@ function Login({ onEnter }: { onEnter: () => void }) {
           <button className="enter-button" onClick={onEnter}>
             Enter demo workspace <Icon name="arrow" />
           </button>
-          <div className="secure-note"><Icon name="shield" size={15} /> Read-only demo · No personal financial data</div>
+          <div className="secure-note"><Icon name="shield" size={15} /> Shared demo · Use fictional data only</div>
           <div className="login-rule"><span>WHAT YOU CAN EXPLORE</span></div>
           <ul className="login-list">
             <li><span>01</span>Portfolio performance and benchmark comparison</li>
