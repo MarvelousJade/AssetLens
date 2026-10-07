@@ -125,7 +125,7 @@ def _finish_scenario(
     # A committed cancellation wins over either calculation outcome.
     finished = db.execute(
         update(ScenarioRun)
-        .where(ScenarioRun.id == run.id, ScenarioRun.status == "running")
+        .where(ScenarioRun.id == run.id)
         .values(status=status, result=result, error=error, completed_at=datetime.now(UTC))
     )
     if finished.rowcount == 1 and status == "completed":

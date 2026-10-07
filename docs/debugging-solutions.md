@@ -29,7 +29,8 @@ Regression coverage includes declines, partial recoveries, and later new highs.
 accumulator is linear time/constant extra state; repeatedly scanning each prefix
 would be simpler to express mathematically but unnecessarily quadratic.
 
-**Checkpoint:** `4d8e3e2` on `shaoyu/learning` preserves the faulty code. The
+**Checkpoints:** `4d8e3e2` preserves the faulty code; `2778165` is its separate fix.
+Both are on `shaoyu/learning`. The
 correction restores the previously correct accumulator. Lint and all 55 API tests
 passed in 4.57 seconds, with 85% statement coverage.
 
@@ -49,6 +50,42 @@ iterations. Say this was intentionally introduced if discussing this exercise.
 
 ## Exercise 2: late scenario outcome
 
-Details will be recorded after the first exercise is corrected. It will be an
-intentional regression of an already-correct rework lifecycle, not a new claim
-about a production cancellation incident.
+**Problem/reproduction:** A cancellation committed during calculation must remain
+terminal, with the cancellation timestamp and no published result/completion
+audit. The new timestamp regression passed before the intentional mistake.
+On the intentional faulty code, lint passed while three focused cases failed
+and ten passed in 1.64 seconds: committed cancellation became completed or failed.
+
+**Investigation:** Use the controlled separate-session test to compare stored
+state before cancellation, after cancellation, and after late worker persistence.
+The simulated report is educational; no real user incident or unsuccessful
+personal debugging attempt is invented.
+
+**Root cause:** Removing terminal-state eligibility from the final UPDATE makes
+a late worker overwrite any existing state for that ID. Prior object reads are
+not an atomic eligibility check at write time.
+
+**Correction:** Restore the `running` predicate and inspect the affected row count
+before auditing completion. Cancellation that wins the database transition then
+discards late results/errors. This restores the already-correct rework baseline;
+it is not a new repair of a naturally discovered main-branch defect. Earlier
+ordinary lifecycle defects and their real rework fix are documented separately.
+
+**Tradeoffs:** Conditional writes need no new schema or lock service. A repeated
+read/check followed by an unconditional write still races; a lock/lease design
+would add complexity and is unnecessary for this tested invariant. Calculation
+is not interrupted, and crashed-worker recovery remains outside this change.
+
+**Verification:** New cancelled-timestamp baseline case passed in 0.33 seconds;
+the intentional faulty run had three failures and ten passes as recorded above.
+Correction results are pending.
+
+**Lesson/interview outline:** Persist lifecycle invariants as write predicates.
+Explain the controlled interleaving, cancellation's preserved state/timestamp,
+and winner-only audit, while accurately identifying the intentional provenance.
+
+**Progressive hints, only when ready:**
+
+1. Draw the allowed state transitions and mark terminal states.
+2. Distinguish an ORM object's status from current persisted eligibility.
+3. Inspect what conditions are enforced at the final write, not only earlier reads.

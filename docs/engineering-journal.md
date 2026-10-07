@@ -487,10 +487,60 @@ evidence, not a naturally discovered bug or production incident. Faulty checkpoi
 API lint passed and all 55 tests passed in 4.57 seconds with 85% statement
 coverage before the separate fix commit. See `docs/debugging-solutions.md` for separate
 progressive hints and explanation, and `docs/debugging-exercises.md` for symptoms.
+Separate correction commit: `2778165` (`fix: preserve running peaks when calculating drawdown`).
 
 **Interview explanation:** State that the defect was intentionally introduced;
 explain how hand-calculated points reveal lost iteration state and how the
 restored accumulator plus full-path regression prevents it.
+
+### Exercise 2 preparation
+
+Added `test_cancelled_run_keeps_timestamp_and_discards_late_result`, asserting
+that cancellation committed during calculation retains its timestamp, status,
+empty result/error, and absence of completion audit. With the guarded executor
+still correct, `pytest tests/test_debugging_regressions.py -k cancelled --no-cov
+--tb=short` passed (one test, one deselected, 0.33 seconds). This baseline result
+precedes the intentional lifecycle mistake. It restores/tests existing correct
+rework behavior, not a newly discovered main-branch defect.
+
+### Exercise 2 checkpoint — implementation-side spoilers
+
+**Problem/reproduction:** After cancellation, a late worker outcome can change
+terminal status/timestamp and publish a result. Run
+`pytest tests/test_debugging_regressions.py tests/test_scenarios.py --no-cov --tb=short`
+on `shaoyu/learning`. Lint passed; tests produced three expected failures and ten
+passes in 1.64 seconds. Committed cancellation became completed on late success
+or failed on late error. The new timestamp test fails first at terminal status,
+so do not claim it reached and observed later assertions on the faulty code.
+
+**Intentional root cause:** Removed final-write status eligibility from the
+already-correct rework helper. An unconditional ID-based update can overwrite
+committed cancellation despite earlier reads. This is a plausible persistence
+refactor mistake, not an arbitrary crash or unrelated broken code.
+
+**Investigation plan:** Inspect separate-session stored state at the controlled
+calculation boundary and assert status, timestamp, result/error, and completion
+audit. The new timestamp regression passed before the fault was introduced.
+
+**Fix plan/tradeoffs:** Preserve the faulty checkpoint, then restore the terminal
+predicate in a separate fix commit. Fresh reads without guarded writes still
+race; no new lock, queue, schema, or lease is needed for this invariant. Cancellation
+cannot interrupt calculation, and worker-crash recovery remains unimplemented.
+
+**Provenance:** Intentionally introduced only on the learning branch after a
+verified working rework baseline. The eventual fix restores that baseline. It
+must not be represented as a new naturally discovered main incident; ordinary
+preexisting lifecycle findings are documented separately.
+
+**References/lesson:** `scenarios._finish_scenario`,
+`tests/test_debugging_regressions.py`, `tests/test_scenarios.py`, separate learner
+instructions and spoiler material. Enforce state eligibility at write time and
+inspect the winning transition before publishing an audit.
+
+**Interview explanation:** Describe this as an intentional exercise showing a
+late result after a terminal transition. Explain how a controlled interleaving
+and persisted-state assertions distinguish object state from write eligibility.
+No personal study, production consequence, or unperformed verification is claimed.
 
 ## Learner investigation notes
 
