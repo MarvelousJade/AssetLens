@@ -61,6 +61,12 @@ API tests select an isolated `.tmp/assetlens-test.db` in their fixture. The
 existing Playwright suite was not run: its setup reuses servers and writes tracked
 screenshots. Isolated native browser checks are recorded separately below.
 
+**Migration verification:** With `DATABASE_URL=sqlite:///./.tmp/rework-migrations.db`,
+run `.venv\Scripts\python.exe -m alembic upgrade head` and
+`.venv\Scripts\python.exe -m alembic check` from `apps/api`. Both passed: initial
+revision `20260724_0001` applied and no new upgrade operations were detected.
+The temporary database is ignored; PostgreSQL migration execution was not tested.
+
 **Environment hurdle:** Initial repository inspection ran through a Linux bash
 mount of the Windows working directory. `rg` was unavailable; tracked file
 listing and direct reads provided the inventory. A later bash invocation could
@@ -167,9 +173,8 @@ protect UI state from superseded responses. The tradeoff is two-stage loading
 rather than one all-or-nothing request group; do not invent zero performance.
 
 **References:** `apps/web/app/components/Dashboard.tsx`, `Dashboard.test.tsx`,
-`apps/web/app/page.tsx`, `docs/security.md`. Commit subject:
-`fix: keep empty portfolios usable for CSV import`; its hash will be recorded in
-the next journal update. `docs/interview-guide.md` provides concise study outlines and marks open
+`apps/web/app/page.tsx`, `docs/security.md`. Commit: `549fffa`
+(`fix: keep empty portfolios usable for CSV import`). `docs/interview-guide.md` provides concise study outlines and marks open
 investigations without inventing personal learning or production evidence.
 
 ## CSV validation: reject non-finite values and malformed rows
@@ -247,6 +252,82 @@ revealed non-finite values and malformed rows bypassing validation. Reproduction
 isolated Python float semantics and DictReader's sentinel values. A small
 pre-write validation change rejects these inputs with useful errors, while table
 count assertions test atomicity and a positive case preserves optional defaults.
+
+## Scenario lifecycle: controlled interleaving investigation
+
+**Expected behavior and acceptance:** Only a pending run may be claimed by an
+executor. Repeated delivery must not recalculate completed/failed/cancelled or
+already-running runs. Cancellation committed during calculation must survive
+both successful and failing calculation. Cancellation must not overwrite a run
+that completed after the cancellation handler's initial lookup. A successful run
+must have one completion audit event; ordinary calculation errors remain failed
+with a diagnostic and completion timestamp.
+
+**Investigation plan:** `apps/api/tests/test_scenarios.py` uses separate database
+sessions and monkeypatched calculation/lookup boundaries to establish specific
+interleavings, not elapsed-time sleeps. These are local controlled tests, not
+production incident reports or proof of all multi-worker behavior. Run the nine
+cases against the unchanged executor before changing its state transitions.
+
+```text
+cd /d "G:\C++ PROJECTS\AssetLens\apps\api"
+.venv\Scripts\python.exe -m pytest tests/test_scenarios.py --no-cov --tb=short
+```
+
+**Source hypothesis:** `execute_scenario` checks only pre-execution cancellation,
+then unconditionally writes running and terminal states through a cached ORM
+object. The cancellation route also checks status before a separate write. A
+read/check/write sequence can accept a stale state even with a transaction.
+**Reproduction results:** The nine unchanged-code cases produced seven failures
+and two passes in 1.19 seconds. Running/failed runs became completed; completed
+runs were recalculated; cancellation during calculation became completed or
+failed; repeated delivery changed result/timestamp; stale cancellation returned
+HTTP 200 after another session completed the run. Cancellation before execution
+and ordinary calculation failure already worked.
+
+**Root cause:** Status was checked separately from mutation, and the worker
+retained an ORM object across another session's cancellation. A local object is
+not evidence that the corresponding database status is still eligible.
+
+**Fix:** Claim pending runs with a conditional SQL update and inspect affected
+row count. Finalize only still-running runs; write completion audit in the same
+transaction only when completion wins. Roll back a failed calculation session
+before recording failed state. Cancel only an eligible database state, returning
+409 when a concurrent terminal transition won. Cancellation records a timestamp.
+Added two further cases for duplicate delivery during calculation and successful
+pending cancellation, for eleven lifecycle cases total.
+
+**Verification:** API lint passed and all 54 tests passed in 5.32 seconds,
+including eleven lifecycle cases. Statement coverage was 85% over 940 statements;
+the existing TestClient dependency warning remains. Commands used the project
+Python 3.12.10 virtualenv. No schema change was required; isolated SQLite migration
+checks also passed. PostgreSQL/Celery multi-worker execution was not verified.
+Existing frontend state wording still needs its own follow-up checks, especially
+terminal states, polling exhaustion, and late scenario results after portfolio
+switching.
+
+**Tradeoffs:** Conditional database transitions guard the lifecycle without a
+new queue, schema, or lock service. Cancellation discards a calculated result;
+it does not interrupt computation. A worker that dies after claiming a run may
+remain running without a lease/recovery policy. Automatic safe retry is not
+claimed. Cancellation versus completion is decided by the winning database
+transition, not wall-clock assumptions.
+
+**Lesson:** Lifecycle invariants need to live in database predicates, not just
+prior status reads. Controlled interleavings expose races without flaky sleeps.
+
+**References:** `apps/api/app/scenarios.py`, `main.py`,
+`apps/api/tests/test_scenarios.py`, `docs/api.md`, `docs/architecture.md`.
+
+**Interview explanation:** Tests demonstrated that stale worker/handler objects
+could overwrite terminal state. Conditional updates made claim, completion, and
+cancellation eligibility atomic; completion auditing follows the same winning
+transaction. This improves the tested ordering guarantees but is not durable
+worker recovery or a production load-test claim.
+
+**Provenance:** Investigating existing implementation behavior during ordinary
+rework. Test synchronization simulates relevant ordering; no intentional learning
+branch defect has been introduced.
 
 ## Learner investigation notes
 

@@ -47,7 +47,10 @@ flowchart LR
 
 ## Reliability choices
 
-- Scenario jobs are status-addressable and safe to poll, cancel, or retry.
+- Scenario jobs are status-addressable. Conditional database updates claim only
+  pending runs and preserve a committed cancellation over calculation outcomes.
+  Repeated delivery does not rerun running or terminal jobs. Worker-crash recovery
+  and automatic retry are not implemented; create a new run for a fresh attempt.
 - Import hashes prevent accidental duplicate ingestion.
 - Database connection pools use pre-ping.
 - Health checks include a live database query and data-freshness timestamp.

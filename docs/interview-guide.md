@@ -114,7 +114,14 @@ project evidence, not claims about what the learner personally did.
    old rows and both new component tests failed → separate holdings from optional
    analytics and guard superseded loads → two-stage loading without fabricated
    metrics → four frontend tests, types, build, and isolated browser import passed
-   → expected API errors need deliberate UI states.
+   → expected API errors need deliberate UI states (commit `549fffa`).
+
+4. **Scenario lifecycle:** Cancelled jobs became completed/failed and repeated
+   delivery reran terminal jobs → suspected stale status checks → seven controlled
+   pre-fix failures → conditional database transitions and winner-only audit →
+   cancellation discards outcomes but cannot interrupt computation or recover a
+   crashed worker → 54 API tests and lint passed → lifecycle invariants belong
+   in database predicates, not cached ORM state.
 
 ## Learning and reflection
 
@@ -123,7 +130,7 @@ of concurrent idempotency; why ownership belongs in resource queries; how drawdo
 tracks the running peak; and why a slow old request must not replace a newer
 portfolio's display.
 
-Improve next: verify PDF download, scenario terminal transitions,
+Improve next: verify PDF download and frontend scenario terminal/polling states,
 sparse-history policies, and imported-price
 ownership. Decide whether to restrict inputs to CAD or implement actual FX
 conversion; summing arbitrary currencies is not a production accounting model.
@@ -171,7 +178,8 @@ using personal financial data or claiming the shared demo workspace is read-only
 - Purpose: explain the path from portfolio inputs to transparent metrics.
 - Audience: reviewer or learner; not a trading or advice service.
 - Architecture: Next.js → FastAPI → SQLAlchemy/SQLite → deterministic services.
-- Strong evidence: CSV boundary failures reproduced, minimal fix, 43 API tests pass.
+- Strong evidence: CSV and lifecycle failures reproduced; latest API run has 54
+  passing tests and 85% statement coverage.
 - Decision: preserve useful behavior; optional infrastructure is not required locally.
 - Tradeoff: reproducible static data and simplified shocks, not live financial accuracy.
 - Limits: browser export and scenario lifecycle need further verification; no

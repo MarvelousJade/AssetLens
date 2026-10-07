@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from .analytics import holdings_snapshot
@@ -93,14 +93,42 @@ def execute_scenario(run_id: str, db: Session) -> None:
     if row is None:
         return
     run, owner_id = row
-    if run.status == "cancelled":
+    claimed = db.execute(
+        update(ScenarioRun)
+        .where(ScenarioRun.id == run_id, ScenarioRun.status == "pending")
+        .values(status="running")
+    )
+    db.commit()
+    if claimed.rowcount != 1:
+        return
+    db.refresh(run)
+    if run.status != "running":
         return
     try:
-        run.status = "running"
-        db.commit()
-        run.result = calculate_scenario(db, run, owner_id)
-        run.status = "completed"
-        run.completed_at = datetime.now(UTC)
+        result = calculate_scenario(db, run, owner_id)
+    except Exception as exc:
+        db.rollback()
+        _finish_scenario(db, run, owner_id, "failed", error=str(exc))
+    else:
+        _finish_scenario(db, run, owner_id, "completed", result=result)
+
+
+def _finish_scenario(
+    db: Session,
+    run: ScenarioRun,
+    owner_id: str,
+    status: str,
+    *,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    # A committed cancellation wins over either calculation outcome.
+    finished = db.execute(
+        update(ScenarioRun)
+        .where(ScenarioRun.id == run.id, ScenarioRun.status == "running")
+        .values(status=status, result=result, error=error, completed_at=datetime.now(UTC))
+    )
+    if finished.rowcount == 1 and status == "completed":
         db.add(
             AuditEvent(
                 actor_id=owner_id,
@@ -110,9 +138,4 @@ def execute_scenario(run_id: str, db: Session) -> None:
                 detail={"type": run.scenario_type},
             )
         )
-        db.commit()
-    except Exception as exc:
-        run.status = "failed"
-        run.error = str(exc)
-        run.completed_at = datetime.now(UTC)
-        db.commit()
+    db.commit()

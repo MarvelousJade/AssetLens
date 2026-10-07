@@ -34,6 +34,24 @@ FastAPI returns `{"detail": ...}`. Validation errors use HTTP 422,
 authentication errors 401, missing owned resources 404, and invalid state
 transitions 409. CSV row errors identify the row, field, and message.
 
+## Scenario lifecycle
+
+A created run starts `pending`. Execution claims it with a conditional
+`pending → running` update, then conditionally finalizes `running → completed`
+or `running → failed`. Only the winning completion transition writes its audit
+event. Duplicate delivery of a running or terminal run does not recalculate it.
+
+Cancellation conditionally changes `pending` or `running` to `cancelled` and
+records its completion timestamp. If the run became terminal before the write,
+the endpoint returns HTTP 409. Committed cancellation is not overwritten by a
+later calculation result or error; it discards that outcome rather than
+interrupting Python calculation mid-execution.
+
+A worker that dies after claiming a run can leave it `running`. There is no lease,
+automatic recovery, or retry endpoint. Start a new scenario run for another attempt.
+Local tests cover controlled interleavings with separate SQLite sessions; this is
+not evidence of deployed multi-worker stress testing.
+
 ## CSV validation
 
 Imports validate every row before writing holdings, securities, prices, the
