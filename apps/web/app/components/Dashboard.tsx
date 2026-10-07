@@ -156,6 +156,9 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [scenarioCatalog, setScenarioCatalog] = useState<ScenarioDefinition[]>([]);
   const [scenarioType, setScenarioType] = useState("technology_decline");
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null);
+  const [scenarioPolling, setScenarioPolling] = useState(false);
+  const [scenarioPollingPaused, setScenarioPollingPaused] = useState(false);
+  const scenarioRequest = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -173,7 +176,10 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
     if (!quiet) {
       setLoading(true);
       setSnapshot(null);
+      scenarioRequest.current += 1;
       setScenarioRun(null);
+      setScenarioPolling(false);
+      setScenarioPollingPaused(false);
       setImportMessage("");
     } else setRefreshing(true);
     setPerformance(null);
@@ -231,15 +237,46 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
 
   useEffect(() => {
     void loadPortfolio(portfolioId);
-    return () => { loadRequest.current += 1; };
+    return () => {
+      loadRequest.current += 1;
+      scenarioRequest.current += 1;
+    };
   }, [loadPortfolio, portfolioId]);
 
   useEffect(() => {
     if (tab === "research") void loadResearch();
   }, [tab, loadResearch]);
 
+  async function pollScenario(runId: string, request: number) {
+    setScenarioPolling(true);
+    setScenarioPollingPaused(false);
+    setError("");
+    try {
+      for (let attempt = 0; attempt < 15; attempt += 1) {
+        const run = await apiFetch<ScenarioRun>(`/api/scenario-runs/${runId}`);
+        if (request !== scenarioRequest.current) return;
+        setScenarioRun(run);
+        if (["completed", "failed", "cancelled"].includes(run.status)) return;
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        if (request !== scenarioRequest.current) return;
+      }
+      setScenarioPollingPaused(true);
+    } catch (caught) {
+      if (request === scenarioRequest.current) {
+        setError(caught instanceof Error ? caught.message : "Could not refresh scenario status.");
+        setScenarioPollingPaused(true);
+      }
+    } finally {
+      if (request === scenarioRequest.current) setScenarioPolling(false);
+    }
+  }
+
   async function runScenario() {
+    const request = ++scenarioRequest.current;
     const definition = scenarioCatalog.find((item) => item.type === scenarioType);
+    setScenarioRun(null);
+    setScenarioPolling(true);
+    setScenarioPollingPaused(false);
     setError("");
     try {
       const created = await apiFetch<{ id: string }>(`/api/portfolios/${portfolioId}/scenarios`, {
@@ -250,14 +287,14 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
           shocks: {},
         }),
       });
-      for (let attempt = 0; attempt < 15; attempt += 1) {
-        const run = await apiFetch<ScenarioRun>(`/api/scenario-runs/${created.id}`);
-        setScenarioRun(run);
-        if (["completed", "failed", "cancelled"].includes(run.status)) return;
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
-      }
+      if (request !== scenarioRequest.current) return;
+      await pollScenario(created.id, request);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Scenario failed.");
+      if (request === scenarioRequest.current) {
+        setError(caught instanceof Error ? caught.message : "Scenario failed.");
+      }
+    } finally {
+      if (request === scenarioRequest.current) setScenarioPolling(false);
     }
   }
 
@@ -554,22 +591,42 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
                     </label>
                   ))}
                 </div>
-                <button className="run-button" onClick={runScenario} disabled={snapshot.holdings.length === 0}>
+                <button className="run-button" onClick={runScenario} disabled={scenarioPolling || snapshot.holdings.length === 0}>
                   <Icon name="scenario" /> Run scenario
                 </button>
               </section>
               <section className="card scenario-output">
-                {!scenarioRun && (
+                {!scenarioRun && scenarioPolling && (
+                  <div className="empty-scenario"><span className="spinner" /><h2>Creating scenario run</h2></div>
+                )}
+                {!scenarioRun && !scenarioPolling && (
                   <div className="empty-scenario">
                     <div><Icon name="scenario" size={30} /></div>
                     <h2>Ready to stress test</h2>
                     <p>Select a shock to estimate the portfolio impact and see which holdings are most affected.</p>
                   </div>
                 )}
-                {scenarioRun && scenarioRun.status !== "completed" && (
-                  <div className="empty-scenario"><span className="spinner" /><h2>{scenarioRun.status}</h2><p>The job is running with safe retry semantics.</p></div>
+                {scenarioRun && ["pending", "running"].includes(scenarioRun.status) && (
+                  <div className="empty-scenario">
+                    {scenarioPolling && <span className="spinner" />}
+                    <h2>{scenarioPollingPaused ? "Polling paused" : scenarioRun.status}</h2>
+                    <p>{scenarioPollingPaused
+                      ? "The run is not terminal yet. Refresh its status without starting another run."
+                      : "Waiting for the scenario calculation."}</p>
+                    {scenarioPollingPaused && <button className="primary-button" onClick={() =>
+                      void pollScenario(scenarioRun.id, ++scenarioRequest.current)
+                    }>Refresh status</button>}
+                  </div>
                 )}
-                {scenarioRun?.result && (
+                {scenarioRun && ["failed", "cancelled"].includes(scenarioRun.status) && (
+                  <div className="empty-scenario">
+                    <h2>Scenario {scenarioRun.status}</h2>
+                    <p>{scenarioRun.status === "failed"
+                      ? scenarioRun.error || "The calculation failed. Start a new run to try again."
+                      : "This run was cancelled. Its calculation result will not be published."}</p>
+                  </div>
+                )}
+                {scenarioRun?.status === "completed" && scenarioRun.result && (
                   <div className="scenario-results">
                     <div className="eyebrow">ESTIMATED IMPACT</div>
                     <div className="impact-number">{currency.format(scenarioRun.result.estimated_impact)}</div>

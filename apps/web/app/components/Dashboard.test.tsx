@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api";
-import type { Portfolio, Snapshot } from "../types";
+import type { Portfolio, ScenarioRun, Snapshot } from "../types";
 import { Dashboard } from "./Dashboard";
 
 vi.mock("../api", () => ({ apiFetch: vi.fn(), downloadReport: vi.fn() }));
@@ -77,7 +77,85 @@ beforeEach(() => {
     throw new Error(`Unexpected request: ${path}`);
   });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.useRealTimers(); });
+
+describe("Scenario display", () => {
+  it("ignores a late scenario result after changing portfolios", async () => {
+    created = true;
+    const original = vi.mocked(apiFetch).getMockImplementation()!;
+    let releaseRun!: (run: ScenarioRun) => void;
+    const lateRun = new Promise<ScenarioRun>((resolve) => { releaseRun = resolve; });
+    vi.mocked(apiFetch).mockImplementation((path, options, token) => {
+      if (path.endsWith("/scenarios")) return Promise.resolve({ id: "late-run" });
+      if (path === "/api/scenario-runs/late-run") return lateRun;
+      return original(path, options, token);
+    });
+    render(<Dashboard onSignOut={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Clarity behind every position." });
+    fireEvent.click(screen.getByRole("button", { name: /Scenarios/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Run scenario" }));
+    await waitFor(() => expect(vi.mocked(apiFetch).mock.calls.some(([path]) =>
+      path === "/api/scenario-runs/late-run")).toBe(true));
+    fireEvent.change(screen.getByRole("combobox", { name: "PORTFOLIO" }), {
+      target: { value: empty.id },
+    });
+    await screen.findByRole("heading", { name: "Ready to stress test" });
+    await act(async () => { releaseRun({
+      id: "late-run", name: "Old portfolio run", scenario_type: "technology_decline",
+      status: "completed", error: null,
+      result: { portfolio_value: 24, estimated_impact: -6, estimated_impact_percent: -0.25,
+        estimated_post_scenario_value: 18, affected_holdings: [], assumptions: [], as_of: "2026-01-02" },
+    }); });
+    expect(screen.queryByText("ESTIMATED IMPACT")).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "PORTFOLIO" })).toHaveValue(empty.id);
+    expect(screen.getByRole("button", { name: "Run scenario" })).toBeDisabled();
+  });
+
+  it.each(["failed", "cancelled"])("shows a %s run without a running spinner", async (status) => {
+    const original = vi.mocked(apiFetch).getMockImplementation()!;
+    vi.mocked(apiFetch).mockImplementation(async (path, options, token) => {
+      if (path.endsWith("/scenarios")) return { id: "terminal-run" };
+      if (path === "/api/scenario-runs/terminal-run") return {
+        id: "terminal-run", name: "Test", scenario_type: "technology_decline", status,
+        result: null, error: status === "failed" ? "Controlled calculation error" : null,
+      };
+      return original(path, options, token);
+    });
+    const { container } = render(<Dashboard onSignOut={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Clarity behind every position." });
+    fireEvent.click(screen.getByRole("button", { name: /Scenarios/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Run scenario" }));
+    await screen.findByRole("heading", { name: `Scenario ${status}` });
+    expect(container.querySelector(".empty-scenario .spinner")).not.toBeInTheDocument();
+    if (status === "failed") expect(screen.getByText("Controlled calculation error")).toBeInTheDocument();
+  });
+
+  it("pauses exhausted polling and can resume without creating another run", async () => {
+    const original = vi.mocked(apiFetch).getMockImplementation()!;
+    let status = "pending";
+    vi.mocked(apiFetch).mockImplementation(async (path, options, token) => {
+      if (path.endsWith("/scenarios")) return { id: "slow-run" };
+      if (path === "/api/scenario-runs/slow-run") return {
+        id: "slow-run", name: "Test", scenario_type: "technology_decline", status,
+        result: null, error: null,
+      };
+      return original(path, options, token);
+    });
+    render(<Dashboard onSignOut={vi.fn()} />);
+    await screen.findByRole("heading", { name: "Clarity behind every position." });
+    fireEvent.click(screen.getByRole("button", { name: /Scenarios/ }));
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Run scenario" }));
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.getByRole("heading", { name: "Polling paused" })).toBeInTheDocument();
+    status = "cancelled";
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Refresh status" })); });
+    expect(screen.getByRole("heading", { name: "Scenario cancelled" })).toBeInTheDocument();
+    expect(vi.mocked(apiFetch).mock.calls.filter(([path]) => path.endsWith("/scenarios"))).toHaveLength(1);
+  });
+});
 
 describe("Portfolio loading", () => {
   it("ignores an older refresh after selecting a different portfolio", async () => {

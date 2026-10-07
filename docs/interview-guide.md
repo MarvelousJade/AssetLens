@@ -123,6 +123,13 @@ project evidence, not claims about what the learner personally did.
    crashed worker → 54 API tests and lint passed → lifecycle invariants belong
    in database predicates, not cached ORM state.
 
+5. **Scenario observation:** Terminal runs showed a spinner and polling silently
+   stopped → suspected conflated job/client states → three UI regressions failed
+   → separate observation activity from job status → explicit paused/terminal
+   display and same-run refresh → manual observation rather than unbounded polling
+   → eight frontend tests, types, and build passed → stopping observation does
+   not mean the server job failed or was cancelled.
+
 ## Learning and reflection
 
 Be able to explain why validation precedes writes; why replay hashing is not proof
@@ -130,7 +137,7 @@ of concurrent idempotency; why ownership belongs in resource queries; how drawdo
 tracks the running peak; and why a slow old request must not replace a newer
 portfolio's display.
 
-Improve next: verify PDF download and frontend scenario terminal/polling states,
+Improve next: verify PDF download,
 sparse-history policies, and imported-price
 ownership. Decide whether to restrict inputs to CAD or implement actual FX
 conversion; summing arbitrary currencies is not a production accounting model.
@@ -182,6 +189,6 @@ using personal financial data or claiming the shared demo workspace is read-only
   passing tests and 85% statement coverage.
 - Decision: preserve useful behavior; optional infrastructure is not required locally.
 - Tradeoff: reproducible static data and simplified shocks, not live financial accuracy.
-- Limits: browser export and scenario lifecycle need further verification; no
+- Limits: browser export needs further verification; no
   production impact or performance improvement claim.
 - Personal learning: fill in only after reproducing and recording your own study.

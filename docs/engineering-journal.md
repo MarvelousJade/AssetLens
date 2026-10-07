@@ -318,6 +318,7 @@ prior status reads. Controlled interleavings expose races without flaky sleeps.
 
 **References:** `apps/api/app/scenarios.py`, `main.py`,
 `apps/api/tests/test_scenarios.py`, `docs/api.md`, `docs/architecture.md`.
+Commit: `75f1890` (`fix: preserve terminal scenario state during concurrent execution`).
 
 **Interview explanation:** Tests demonstrated that stale worker/handler objects
 could overwrite terminal state. Conditional updates made claim, completion, and
@@ -328,6 +329,65 @@ worker recovery or a production load-test claim.
 **Provenance:** Investigating existing implementation behavior during ordinary
 rework. Test synchronization simulates relevant ordering; no intentional learning
 branch defect has been introduced.
+
+## Scenario display: terminal states and bounded polling
+
+**Problem hypothesis:** The current UI displays a spinner and “The job is running”
+for any run that is not completed, including failed/cancelled runs. It stops
+polling after fifteen attempts without exposing that polling stopped.
+
+**Acceptance criteria:** Failed/cancelled runs must show a terminal heading with
+no running spinner; a failure includes its error. A still-pending/running run
+after the polling budget must offer an explicit paused state and a status-refresh
+action that does not create another run. Superseded scenario responses must not
+appear after portfolio selection changes. Remove claims of automatic safe retry.
+
+**Reproduction:** Added component tests before editing the UI. They return
+controlled failed/cancelled job responses and use fake timers for a job that
+remains pending beyond the polling budget. Run
+`npm test -- app/components/Dashboard.test.tsx`. Before the UI change, three
+new scenario cases failed and the three loading cases passed in 6.11 seconds:
+terminal headings were missing and a permanently pending run kept displaying
+“safe retry semantics” instead of announcing polling exhaustion.
+
+**Root cause:** Rendering treated every non-completed status as active, while
+polling returned silently after its finite loop. There was no distinction between
+the server run's status and whether the browser was still observing it.
+
+**Fix:** Separate polling activity/paused state from the persisted job status.
+Share a bounded polling helper between new-run and status-refresh actions.
+Render failed/cancelled states without spinners; expose `Polling paused` and
+`Refresh status` without another POST. Disable duplicate submission while
+observing a run. Invalidate scenario request IDs on selection change/unmount and
+ignore late responses. A fourth new test uses a deferred response to verify
+portfolio-scoped results; this is additional coverage, not a pre-fix run claim.
+
+**Verification:** `npm test` passed all eight frontend tests in 3.49 seconds;
+`npx tsc --noEmit` passed; the Next.js production build passed (3.0-second
+compilation, 4.3-second built-in type check). Tests cover four scenario cases and
+three portfolio-loading cases plus the existing entry test. The failed baseline
+remains recorded evidence.
+
+**Tradeoffs:** Polling remains a small fifteen-attempt, 300 ms local-demo budget;
+pausing observation does not cancel the server job or declare it failed. Manual
+refresh starts another bounded observation period for the same run. This avoids
+unbounded background polling without adding WebSockets or durable scheduling.
+
+**Lesson:** Job lifecycle and client observation lifecycle are different states.
+Use explicit terminal/error/paused presentation, and guard late work independently
+of the user's current selection.
+
+**References:** `apps/web/app/components/Dashboard.tsx` and `Dashboard.test.tsx`.
+
+**Interview explanation:** The backend could report a terminal job while the UI
+still showed a running spinner. Reproductions separated server state from polling
+activity; a reusable observer and explicit state rendering corrected that mismatch.
+A request identity prevents an old portfolio's scenario from appearing in the
+new workspace. Eight frontend tests, types, and production build passed.
+
+**Provenance:** Investigation of existing UI behavior during ordinary development,
+not an intentionally introduced learning-branch defect. Controlled API responses
+are test fixtures, not reports of real users or production events.
 
 ## Learner investigation notes
 
