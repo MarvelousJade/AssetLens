@@ -68,9 +68,11 @@ separate the required local path from those extensions.
 - [x] Deliver validation, empty-portfolio loading, and scenario lifecycle/display
   behavior with tests, journal evidence, diff review, and focused commits.
 - [x] Prepare the concise interview guide with five evidence-based story outlines.
-- [ ] Prepare isolated debugging exercises after the verified working baseline.
-- [ ] Integrate only corrected learning-branch state using a merge commit;
-  rerun checks on the resulting rework branch.
+- [x] Prepare two isolated debugging exercises with verified faulty checkpoints,
+  separate normal fix commits, learner instructions, and optional spoiler material.
+- [x] Integrate only corrected learning-branch state using merge commit `b23ab90`.
+- [x] Record post-merge checks and prepare the final verified documentation commit:
+  56 API tests, 8 frontend tests, types/build, migrations, and 2 Chromium journeys pass.
 
 Baseline acceptance: API lint and existing tests pass; frontend tests, TypeScript
 checking, and production build pass; the reviewer browser journey works against

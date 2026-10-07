@@ -1,10 +1,11 @@
 # Debugging exercises: learner instructions
 
 The working project at rework baseline `b990b6b` is verified before these exercises.
-Two defects are intentionally introduced only on `shaoyu/learning`; they are not production
-incidents. The final learning branch will be corrected and merged into
-`shaoyu/rework` independently of your study progress, preserving faulty and fix
-commits. No intentional defect may remain in the merged working state.
+Two defects were intentionally introduced only on `shaoyu/learning`; they are not
+production incidents. Both are now corrected and integrated into `shaoyu/rework`
+by merge commit `b23ab90`, preserving faulty and fix commits. No intentional defect
+remains in the working final state. Study the preserved checkpoints independently
+of implementation progress.
 
 Do not read the separate solutions document or fix diffs until you are ready.
 Ask for progressive hints if you get stuck. Describe personal investigation only
@@ -13,8 +14,8 @@ after recording your own observations in the journal's learner-notes section.
 ## Safe setup
 
 Use a separate worktree at the desired faulty commit rather than resetting your
-working implementation branch. Commit IDs will be recorded below after the
-checkpoints are verified. Replace `<checkpoint>` with the exercise's faulty ID:
+working implementation branch. Verified faulty commit IDs are recorded below.
+Replace `<checkpoint>` with the exercise's faulty ID:
 
 ```text
 git worktree add --detach ../AssetLens-debug <checkpoint>
@@ -84,5 +85,5 @@ For each exercise, record separately from implementation notes:
 - Actual regression and broader verification results.
 - What you learned and how to explain the investigation without jargon.
 
-Solutions and final verification will be maintained separately. Avoid presenting
+Solutions and verification are maintained separately in the spoiler document. Avoid presenting
 these intentional defects as naturally discovered problems in the working branch.

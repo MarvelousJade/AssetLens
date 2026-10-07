@@ -12,7 +12,8 @@ seed makes the demo independent of accounts and paid data feeds. The core journe
 is holdings → benchmark analytics → scenario → research report. The strongest
 freshly verified correctness example is atomic CSV rejection: malformed rows and
 non-finite numbers return validation errors without changing five affected tables.
-At commit `cef57d0`, all 43 API tests passed with 84% statement coverage. These
+The final merged verification passed 56 API tests with 85% statement coverage,
+8 frontend tests, types/build checks, migrations, and 2 Chromium journeys. These
 are local test results, not production impact or performance improvements.
 
 **Three-minute walkthrough:**
@@ -171,6 +172,11 @@ boundary tests before describing the workflow as complete.
 5. Review decisions, evidence, and limitations.
 6. Practice explaining the project without notes.
 
+For the two preserved intentional defects, start with
+[learner instructions](debugging-exercises.md). Use the separate worktree described
+there; do not reset the working rework branch or open spoiler material before you
+are ready. The final state is already corrected; your study can proceed independently.
+
 **Demo:** Follow README local setup using the API virtualenv; run the web app.
 Enter the workspace, show benchmark comparison, open Holdings, then run Technology
 drawdown. Explain the assumptions before interpreting the result. Show the CSV
@@ -184,7 +190,7 @@ data or claiming the shared demo workspace is read-only.
 - Purpose: explain the path from portfolio inputs to transparent metrics.
 - Audience: reviewer or learner; not a trading or advice service.
 - Architecture: Next.js → FastAPI → SQLAlchemy/SQLite → deterministic services.
-- Strong evidence: CSV and lifecycle failures reproduced; latest API run has 54
+- Strong evidence: CSV and lifecycle failures reproduced; latest API run has 56
   passing tests and 85% statement coverage.
 - Decision: preserve useful behavior; optional infrastructure is not required locally.
 - Tradeoff: reproducible static data and simplified shocks, not live financial accuracy.

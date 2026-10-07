@@ -30,8 +30,7 @@ accumulator is linear time/constant extra state; repeatedly scanning each prefix
 would be simpler to express mathematically but unnecessarily quadratic.
 
 **Checkpoints:** `4d8e3e2` preserves the faulty code; `2778165` is its separate fix.
-Both are on `shaoyu/learning`. The
-correction restores the previously correct accumulator. Lint and all 55 API tests
+Both are preserved through merge `b23ab90`. The correction restores the previously correct accumulator. Lint and all 55 API tests
 passed in 4.57 seconds, with 85% statement coverage.
 
 **Verification:** Baseline full-path test passed; the faulty focused run produced
@@ -78,12 +77,14 @@ is not interrupted, and crashed-worker recovery remains outside this change.
 
 **Verification:** New cancelled-timestamp baseline case passed in 0.33 seconds;
 the intentional faulty run had three failures and ten passes as recorded above.
-**Faulty checkpoint:** `8255540`. Restored the guarded terminal write in the
-working tree for a separate fix commit. Lint and all 56 API tests passed in
+**Checkpoints:** `8255540` preserves the faulty state; `cacadc4` is its separate
+fix. Both are preserved through merge `b23ab90`. Restored the guarded terminal write. Lint and all 56 API tests passed in
 5.09 seconds with 85% coverage; SQLite migration upgrade/drift checks passed.
 All eight frontend tests (5.03 seconds), standalone TypeScript checking, and
 production build passed; both isolated Chromium journeys passed in 18.7 seconds.
-The corrected state is eligible for integration after commit/diff review.
+The reviewed corrected state was integrated through `b23ab90`; post-merge API,
+frontend/type/build, migration, and both Chromium checks passed. Exact commands
+and results are recorded in the journal.
 
 **Lesson/interview outline:** Persist lifecycle invariants as write predicates.
 Explain the controlled interleaving, cancellation's preserved state/timestamp,

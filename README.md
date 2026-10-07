@@ -29,7 +29,7 @@ moment to wake up.
 - Grounded all 3 tested research questions in the correct read-only analytics
   tools with citations, and refused all 3 tested buy/sell/price-target prompts
   before making any tool call.
-- Rework verification: 54 API tests passed with 85% statement coverage across
+- Rework verification: 56 API tests passed with 85% statement coverage across
   940 Python statements; 8 frontend tests, standalone TypeScript checking, the
   production build, and 2 isolated Chromium journeys passed. Browser coverage
   includes empty-portfolio creation, CSV import, and a saved PDF report.
@@ -129,7 +129,7 @@ improvement is claimed without a before-and-after baseline.
 | Replaced ad hoc repository checks with a repeatable CI workflow. | Four GitHub Actions jobs in `.github/workflows/ci.yml` | Automates API lint/tests/migrations, frontend audit/tests/build, two container builds, and the browser journey. |
 | Established an absolute performance baseline without inventing an improvement percentage. | `scripts/benchmark_api.py` and `docs/performance.md` | 410 measured sequential local requests completed without HTTP errors; recorded p95 latency ranged from 70.527 ms to 158.745 ms by operation. |
 
-Current rework verification: **54 API tests passed with 85% statement coverage**,
+Current rework verification: **56 API tests passed with 85% statement coverage**,
 8 frontend tests and standalone type checking passed, the optimized Next.js build
 completed, and 2 Chromium journeys passed. Isolated SQLite migration upgrade and
 schema-drift checks passed. These are local Windows/Python 3.12.10/Node 24.19.0
@@ -137,7 +137,10 @@ results; PostgreSQL, Celery workers, containers, and production were not reverif
 
 See [the interview guide](docs/interview-guide.md) for a short study path,
 [the engineering journal](docs/engineering-journal.md) for reproduction and actual
-verification evidence, and [the rework plan](docs/rework-plan.md) for scope.
+verification evidence, and [the rework plan](docs/rework-plan.md) for scope. Start the preserved debugging
+checkpoints with [learner instructions](docs/debugging-exercises.md); diagnoses
+and solutions are kept in a separate spoiler document. Both exercises are fixed
+in the final working state and integrated with a non-squashed merge.
 
 ## Quality commands
 

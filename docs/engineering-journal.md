@@ -547,6 +547,51 @@ late result after a terminal transition. Explain how a controlled interleaving
 and persisted-state assertions distinguish object state from write eligibility.
 No personal study, production consequence, or unperformed verification is claimed.
 
+## Corrected learning integration and final verification
+
+**Review:** Complete `shaoyu/rework..shaoyu/learning` diff was inspected before
+merging: only two regression cases and their documentation/journal remained.
+`git diff --exit-code shaoyu/rework..shaoyu/learning -- apps/api/app apps/web`
+passed, proving no intentional runtime changes remained relative to the verified
+rework baseline. Working tree was clean.
+
+**Integration:** Merge `b23ab90` uses `--no-ff`, preserving first fault/fix
+`4d8e3e2` / `2778165` and second fault/fix `8255540` / `cacadc4`. The exercise
+corrections restore existing correct rework behavior; net contributions are
+regression tests, learner instructions, separate spoilers, and accurate evidence.
+No squashing, history rewrite, push, or merge into main occurred.
+
+**Post-merge verification:** On `shaoyu/rework` at `b23ab90`, API lint passed
+and all 56 API tests passed in 4.68 seconds with 85% statement coverage over 940
+statements. Isolated Alembic upgrade/check passed with no schema drift. All eight
+frontend tests passed in 4.40 seconds, standalone TypeScript checking passed,
+and production build passed (2.4-second compilation, 4.0-second built-in type
+check). Both isolated Chromium workflows passed in 27.5 seconds, including the
+saved-PDF check. These are actual post-merge results, not inferred pre-merge passes.
+
+**Final source review:** Inspected the complete source/configuration delta and
+changed-path list against main; `git diff --check main..HEAD` passed. No runtime
+environment, database, generated build output, or tracked screenshot changes are
+included. Relevant new helpers/imports/state have runtime or test references;
+source lint and frontend types passed. No commented-out implementation was added.
+The common terminal-write and polling behavior is owned by named helpers.
+Main remains `e13a1d83d8080e6b70395850f7bb7ed7d10ce469`; no push occurred.
+Ignored test databases/artifacts remain local evidence, not commit contents.
+A temporary Python 3.12 standard-library checker resolved local Markdown links
+from tracked `.md` files, checked changed paths for environment/generated artifacts,
+and looked for private-key blocks or long `sk-` token patterns. All checks passed.
+This is targeted hygiene, not a comprehensive security scan; the temporary checker
+is removed after use. Final documentation whitespace/staged-diff checks are run
+before its commit.
+
+**Remaining scope limits:** Local SQLite/Chromium checks do not verify PostgreSQL,
+Celery/Redis workers, containers, external providers, deployed security, or
+production behavior. Concurrent import guarantees, shared imported-price ownership,
+FX conversion/sparse-history policy, and crashed-worker recovery remain documented
+limitations/future decisions, not claims of production readiness. The original
+TestClient dependency warning is not resolved by this work. Learner personal
+investigation is intentionally unfilled until study is actually performed.
+
 ## Learner investigation notes
 
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
