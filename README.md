@@ -150,6 +150,7 @@ python -m pytest
 python -m ruff check app tests scripts
 
 cd ..\web
+npm audit
 npm test
 npx tsc --noEmit
 npm run build

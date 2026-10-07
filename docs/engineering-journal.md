@@ -719,6 +719,92 @@ files are this journal and one trace-policy setting; no runtime source, environm
 database, or tracked screenshot changes belong to this follow-up. Existing
 production-scope limitations and unfilled personal study notes remain unchanged.
 
+## CI production dependency audit
+
+**Problem/provenance:** Actual GitHub run `37699322107` for `effb8ab` failed its
+web job at `npm audit --omit=dev`. API installation/lint/tests/migrations passed;
+web tests/build and the dependent container/browser jobs were skipped, not failed
+application tests. This is a real dependency-maintenance issue, not an exercise.
+Previous main also had a failed run; its exact cause was not inferred without logs.
+
+**Reproduction/evidence:** From `apps/web` on the local Node 24.19.0 environment,
+`npm audit --omit=dev` exited 1 with the same five vulnerable production package
+entries: Next.js (critical), Nano ID, PostCSS, sharp, and source-map-js (high).
+The Next.js advisories include Windows-hosted, AVIF optimization, and ImageResponse
+remote-code-execution risks. No exploitation or production exposure is claimed.
+
+**Root cause/decision:** The pinned Next.js 16.2.11 and locked transitive versions
+were outdated relative to current advisories. Passing functional tests did not
+cover CI's separate dependency audit; earlier local verification omitted that gate.
+Do not disable the audit, reduce its severity threshold, or claim that unused image
+features make these advisories irrelevant. Inspect the patched release's engine,
+peer, and transitive requirements before a same-major upgrade; explicitly update
+the pin/lockfile instead of using a blanket `npm audit fix --force`.
+
+**Compatibility/fix:** Registry metadata for Next.js 16.4.0 requires
+Node >=20.9.0 and accepts React/React DOM ^19.0.0, so the existing Node 24 and React
+19.2.0 meet its declared requirements. Current tree had Next.js 16.2.11,
+PostCSS 8.4.31 under Next, sharp 0.34.5, Nano ID 3.3.16, and source-map-js 1.2.1.
+`npm install --save-exact next@16.4.0` followed by `npm update nanoid source-map-js`
+resolved Next.js 16.4.0, PostCSS 8.5.23, sharp 0.35.5, Nano ID 3.3.20, and
+source-map-js 1.2.2. Production audit now reports zero vulnerabilities. Kept React
+versions and CI audit enforcement; no blanket force-fix was used. Installation
+also reported three development-only advisories (one moderate, two critical).
+Full `npm audit` reproduced those with exit 1: vulnerable Vitest/@vitest/mocker
+and Tinypool. These concern mock path traversal/file reads and worker-option
+prototype-pollution RCE. Inspect supported patched test-tool releases rather than
+claiming the entire tree is clean or blindly applying a major-version force fix.
+
+**Test-tool follow-up:** Inspected available releases and selected the earliest
+published unaffected 4.x release, Vitest 4.1.11, rather than npm's suggested 5.0.3
+jump. Its declared Node and Vite ranges accept the existing Node 24/Vite 7.3.6
+setup. `npm install --save-dev --save-exact vitest@4.1.11` resolved the patched
+mocker and removed Tinypool; Vite 7.3.6 and React plugin 5.2.0 remain unchanged.
+Both full `npm audit` and `npm audit --omit=dev` report zero vulnerabilities.
+
+**Prevention/tradeoff:** Strengthen the existing CI gate from production-only
+`npm audit --omit=dev` to full `npm audit`, matching the added README local check.
+This catches development-tool advisories as well, at the cost of broader dependency
+maintenance. No checks were disabled, severity thresholds reduced, or tests skipped.
+A same-major Next.js minor update and a controlled test-tool major update require
+actual compatibility checks, not just clean audit output. npm reports an existing
+pending esbuild install-script approval; no global script-approval policy is changed.
+
+**Local verification:** `npm ci` installed 166 packages from the new lockfile;
+full and production audits both found zero vulnerabilities. Eight frontend tests
+passed under Vitest 4.1.11 in 18.03 seconds with unchanged test source; standalone
+TypeScript checking passed. Next.js 16.4.0 build passed (8.6-second compilation,
+4.3-second built-in type check). `npm run test:e2e -- --output=.tmp/security-update-browser`
+passed both Chromium journeys in 44.8 seconds, including saved PDF verification.
+The clean install still reports the existing whatwg-encoding deprecation and
+pending esbuild script-approval notices; these are not audit findings and no
+warnings or install-script policies were suppressed.
+
+**Framework-generated follow-up:** Next.js added a root-parameter type reference
+to the existing tracked type bootstrap; retain that framework-owned declaration.
+It also generated an untracked nested instruction file containing only its managed
+block during startup. Verified the generator, configuration type/schema, and bundled
+configuration guide. The generated block recommends committing itself, which
+conflicts with the user's preference for curated repository documentation; it is
+not a user-authored change and does not override the root workflow. Set the supported
+top-level `agentRules: false` option, which removes only the managed nested block
+and stops recreating it. Root repository instructions remain authoritative.
+
+**Final configuration verification:** Full audit still found zero vulnerabilities;
+standalone types and production build passed. Both real Chromium journeys passed
+in 17.6 seconds (4.2 and 5.1 seconds per test), including the saved PDF check.
+An explicit filesystem assertion confirmed the generated nested file was removed
+and not recreated; `git diff --exit-code -- AGENTS.md` proved root instructions
+unchanged. These are post-configuration results. The lockfile review confirmed
+expected pins, unchanged Vite/plugin versions, no Tinypool, required Linux/glibc
+and Alpine/musl binary entries, and only public npm registry resolution URLs.
+Changed files are dependency/configuration/type bootstrap, CI gate, README, and
+this journal; no runtime environment, database, screenshots, or unrelated source
+changes are included. Staged diff/whitespace checks precede the focused commit.
+
+**Remote verification pending:** All four GitHub jobs must complete successfully
+after publication. Do not report CI green based solely on the local checks.
+
 ## Learner investigation notes
 
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
