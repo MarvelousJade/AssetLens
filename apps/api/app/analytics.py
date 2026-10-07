@@ -122,7 +122,7 @@ def _drawdown(values: list[float]) -> tuple[list[float], float]:
     result: list[float] = []
     minimum = 0.0
     for value in values:
-        peak = max(values[0], value)
+        peak = max(peak, value)
         drawdown = value / peak - 1 if peak else 0.0
         result.append(drawdown)
         minimum = min(minimum, drawdown)

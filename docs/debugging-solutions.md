@@ -29,10 +29,13 @@ Regression coverage includes declines, partial recoveries, and later new highs.
 accumulator is linear time/constant extra state; repeatedly scanning each prefix
 would be simpler to express mathematically but unnecessarily quadratic.
 
+**Checkpoint:** `4d8e3e2` on `shaoyu/learning` preserves the faulty code. The
+correction restores the previously correct accumulator. Lint and all 55 API tests
+passed in 4.57 seconds, with 85% statement coverage.
+
 **Verification:** Baseline full-path test passed; the faulty focused run produced
-two failures as recorded above. Correction results will be recorded after running
-them. Existing seeded metrics are not claimed to
-have been defective on main.
+two failures as recorded above. The corrected full API suite passed as recorded
+above. Existing seeded metrics are not claimed to have been defective on main.
 
 **Lesson/interview outline:** A correct aggregate minimum can hide incorrect
 intermediate points; test the complete path and preserve required state across

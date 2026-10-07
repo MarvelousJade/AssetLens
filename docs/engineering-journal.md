@@ -473,7 +473,7 @@ investigation is attributed to the learner.
 value rather than preserving the maximum from previous iterations. Partial
 recoveries erase relevant peak history.
 
-**Fix plan:** Restore the running maximum in a separate fix commit after preserving
+**Fix:** Restored the running maximum for a separate fix commit after preserving
 the verified faulty checkpoint. This restores baseline behavior already correct
 on main and rework; it does not repair a defect previously affecting those branches.
 
@@ -482,8 +482,10 @@ is linear time with constant extra state, while rescanning prefixes is quadratic
 Test complete intermediate output, not just final aggregates.
 
 **Verification/provenance:** Expected failures are verified intentional exercise
-evidence, not a naturally discovered bug or production incident. Correction and
-checkpoint IDs remain pending. See `docs/debugging-solutions.md` for separate
+evidence, not a naturally discovered bug or production incident. Faulty checkpoint
+`4d8e3e2` is preserved. Restored the correct accumulator in the working tree;
+API lint passed and all 55 tests passed in 4.57 seconds with 85% statement
+coverage before the separate fix commit. See `docs/debugging-solutions.md` for separate
 progressive hints and explanation, and `docs/debugging-exercises.md` for symptoms.
 
 **Interview explanation:** State that the defect was intentionally introduced;

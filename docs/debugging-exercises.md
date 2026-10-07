@@ -1,8 +1,7 @@
 # Debugging exercises: learner instructions
 
 The working project at rework baseline `b990b6b` is verified before these exercises.
-Two defects will be
-intentionally introduced only on `shaoyu/learning`; they are not production
+Two defects are intentionally introduced only on `shaoyu/learning`; they are not production
 incidents. The final learning branch will be corrected and merged into
 `shaoyu/rework` independently of your study progress, preserving faulty and fix
 commits. No intentional defect may remain in the merged working state.
@@ -29,7 +28,7 @@ preserving your notes/changes; do not force-remove uncommitted work.
 
 ## Exercise 1: inconsistent drawdown path
 
-**Faulty checkpoint:** To be recorded after failure verification.
+**Faulty checkpoint:** `4d8e3e2` (verified intentional failure).
 
 **Simulated report:** “The portfolio dips below an earlier high, but some risk
 values look smaller than the expected decline. A later recovery is shown as if
