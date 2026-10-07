@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import io
+import math
 import re
 from datetime import date
 from typing import Any
@@ -18,11 +19,11 @@ REQUIRED_COLUMNS = {"ticker", "quantity", "average_cost"}
 def _number(row: dict[str, str], key: str, row_number: int, errors: list[dict[str, Any]]) -> float:
     try:
         value = float((row.get(key) or "").strip())
-        if value <= 0:
+        if not math.isfinite(value) or value <= 0:
             raise ValueError
         return value
     except ValueError:
-        errors.append({"row": row_number, "field": key, "message": "Must be a positive number."})
+        errors.append({"row": row_number, "field": key, "message": "Must be a finite positive number."})
         return 0.0
 
 
@@ -59,7 +60,12 @@ def import_holdings_csv(
     errors: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row_number, raw_row in enumerate(reader, start=2):
-        row = {(key or "").strip().lower(): (value or "").strip() for key, value in raw_row.items()}
+        if None in raw_row or any(value is None for value in raw_row.values()):
+            errors.append(
+                {"row": row_number, "field": "file", "message": "Row field count must match the header."}
+            )
+            continue
+        row = {key.strip().lower(): value.strip() for key, value in raw_row.items()}
         ticker = row.get("ticker", "").upper()
         if not TICKER_PATTERN.fullmatch(ticker):
             errors.append({"row": row_number, "field": "ticker", "message": "Invalid ticker."})
