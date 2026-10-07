@@ -432,6 +432,64 @@ silently depending on someone else's local state or modifying repository images.
 An unsuccessful capture is evidence to investigate, not permission to invent a
 bug or performance claim.
 
+## Intentional debugging exercises: verified baseline and provenance
+
+**Baseline:** `b990b6b` on `shaoyu/rework`, with 54 API tests, eight frontend tests,
+TypeScript/build checks, isolated SQLite migration checks, and two Chromium
+journeys passing. Learner-facing instructions were written in
+`docs/debugging-exercises.md` before introducing defects or publishing solutions.
+
+**Exercise preparation:** Added a full drawdown-path regression. Against the
+correct baseline, `pytest tests/test_debugging_regressions.py --no-cov --tb=short`
+passed (one test, 0.50 seconds). Existing drawdown behavior on main and rework is
+already correct; a later exercise correction must not be described as fixing a
+naturally discovered baseline defect.
+
+**Policy:** Introduce two plausible mistakes only on `shaoyu/learning`, reproduce
+failures, preserve each faulty commit, then correct each in a separate normal fix
+commit. Keep symptoms/reproduction apart from diagnoses. Continue correction and
+integration independently of learner progress unless a pause is requested. Merge
+only the corrected state with a merge commit; main remains untouched.
+
+**Investigation limitation:** Implementation-side diagnostic notes are not
+learner personal investigation. Hypothetical reports/consequences are educational,
+not production usage or incidents. Fault/fix IDs and actual results will be added
+after each checkpoint.
+
+### Exercise 1 checkpoint — implementation-side spoilers
+
+**Problem/reproduction:** Full drawdown-path values diverged after an earlier high.
+Focused command: `pytest tests/test_debugging_regressions.py tests/test_analytics.py
+--no-cov --tb=short`; run on `shaoyu/learning` with the project virtualenv.
+
+**Investigation/evidence:** Correct baseline passed the new test. After the
+intentional one-line iteration change, lint passed but tests had two failures and
+six passes in 1.11 seconds. Four of seven path points differed; the existing
+minimum test returned -0.12 rather than -0.2. Full-path assertions identify the
+first divergence instead of testing only an aggregate. No fictional unsuccessful
+investigation is attributed to the learner.
+
+**Root cause:** The intentional change compares each observation to the first
+value rather than preserving the maximum from previous iterations. Partial
+recoveries erase relevant peak history.
+
+**Fix plan:** Restore the running maximum in a separate fix commit after preserving
+the verified faulty checkpoint. This restores baseline behavior already correct
+on main and rework; it does not repair a defect previously affecting those branches.
+
+**Tradeoffs/lesson:** No meaningful architecture tradeoff; a streaming accumulator
+is linear time with constant extra state, while rescanning prefixes is quadratic.
+Test complete intermediate output, not just final aggregates.
+
+**Verification/provenance:** Expected failures are verified intentional exercise
+evidence, not a naturally discovered bug or production incident. Correction and
+checkpoint IDs remain pending. See `docs/debugging-solutions.md` for separate
+progressive hints and explanation, and `docs/debugging-exercises.md` for symptoms.
+
+**Interview explanation:** State that the defect was intentionally introduced;
+explain how hand-calculated points reveal lost iteration state and how the
+restored accumulator plus full-path regression prevents it.
+
 ## Learner investigation notes
 
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
