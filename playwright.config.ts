@@ -13,7 +13,7 @@ export default defineConfig({
   fullyParallel: true,
   use: {
     baseURL: "http://127.0.0.1:3101",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   webServer: [
     {

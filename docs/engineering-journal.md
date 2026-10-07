@@ -650,6 +650,75 @@ metadata even when functional tests pass; reproduce it as a failure before fixin
 the dependency, rather than hiding the signal. This does not verify live OpenAI,
 PostgreSQL, Celery, containers, or production behavior.
 
+## Authorized main integration
+
+**Decision/scope:** The user requested the verified rework on `main`, with both
+branches and their commits retained. Merge `a7e9898` integrates `shaoyu/rework`
+using `--no-ff`; its parents are original main `e13a1d8` and rework `079f6bc`.
+No branch was deleted, no history rewritten, and nothing pushed. After the verified
+finalization commit, fast-forward `shaoyu/rework` to main so both expose the same
+finished state; keep `shaoyu/learning` and all historical checkpoints.
+
+**Corrected-state evidence:** `git diff --exit-code shaoyu/rework HEAD` passed
+immediately after the merge, so the merged tree exactly matches the verified
+rework state. Both exercise fault/fix pairs remain ancestors through `b23ab90`.
+The faults are preserved only as historical checkpoints, not in the final source.
+Their fixes restore already-correct baseline behavior; the regression tests and
+learning documentation are the genuine net additions.
+
+**Documentation review:** Inspected tracked Markdown matches and searched tracked
+files for development-attribution labels. No such labels were found; grep's exit
+1 with no output means no matches, not an application failure. Kept functional
+Copilot/provider descriptions and repository wording instructions. No false
+statements about authorship were added, and no wording changes were necessary.
+
+**Post-merge verification:** On `main` at `a7e9898`, dependency consistency and
+API lint passed. All 56 API tests passed with warnings as errors in 7.18 seconds,
+with 85% coverage over 940 statements and no warnings. Fresh isolated SQLite
+migration upgrade and schema-drift checks passed. Eight frontend tests passed in
+10.83 seconds; standalone types and production build passed (4.8-second
+compilation and 6.3-second built-in type check). Commands use the API virtualenv
+and frontend workflow documented above; migration verification sets
+`DATABASE_URL=sqlite:///./.tmp/main-verification-%RANDOM%.db` from `apps/api`.
+
+**Browser failure/investigation:** The first post-merge browser run failed both
+journeys at the 30-second overall test deadline while clicking the entry button.
+The import journey's call log resolved the correct visible, enabled, stable
+button and reached dispatch; failure snapshots still showed the login screen.
+At that point, there was no basis to claim an application root cause or successful
+browser verification. The merged tree matched the previously passing rework tree.
+Reviewed the entry state/effect and local stylesheet; no external font import
+explains the observed stall. The rendered login follows the initial client effect,
+so the snapshot alone does not support a missing-hydration diagnosis.
+
+**Diagnostic outcomes:** From the root, `npx playwright test --workers=1 --trace on --output=.tmp/main-serial-browser`
+with `DEBUG=pw:webserver` passed both
+journeys in 1.0 minute (20.4 and 12.4 seconds per test). Then
+`npx playwright test --trace on --output=.tmp/main-parallel-browser` passed both using the default two
+workers in 1.5 minutes (14.0 and 20.2 seconds per test). Application code, retries,
+and the 30-second test deadline were unchanged. The initial stall did not
+reproduce; resource contention remains a hypothesis, not an established cause.
+No permanent application or timing fix is claimed. Kept original failure contexts
+and diagnostic traces in separate ignored directories.
+
+**Diagnostics improvement:** Original `trace: "on-first-retry"` provided no trace
+for an initial failure because retries are disabled. Change it to
+`"retain-on-failure"`, preserving the first failure's trace without hiding failures,
+adding retries, or widening timeouts. A temporary, explicitly synthetic failing
+test inherits this policy with application servers disabled to check readable
+first-failure trace retention. Its output showed the intended assertion mismatch
+and one first-failure trace attachment, not an application failure. Separately
+validated ZIP integrity and trace entries with Python; confirmed the original
+failure directory had two error contexts and no trace. Removed the temporary
+probe source/config, retaining ignored evidence only. Finally,
+`npm run test:e2e -- --output=.tmp/main-final-browser` passed both real journeys
+using two workers and the new default policy in 20.1 seconds (6.3 and 6.4 seconds
+per test), including saved PDF verification. This is actual post-change verification,
+not an inference from an attachment message or serial-only success. Final changed
+files are this journal and one trace-policy setting; no runtime source, environment,
+database, or tracked screenshot changes belong to this follow-up. Existing
+production-scope limitations and unfilled personal study notes remain unchanged.
+
 ## Learner investigation notes
 
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
