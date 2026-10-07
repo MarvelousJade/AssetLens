@@ -802,8 +802,25 @@ Changed files are dependency/configuration/type bootstrap, CI gate, README, and
 this journal; no runtime environment, database, screenshots, or unrelated source
 changes are included. Staged diff/whitespace checks precede the focused commit.
 
-**Remote verification pending:** All four GitHub jobs must complete successfully
-after publication. Do not report CI green based solely on the local checks.
+**Remote verification:** Published fix `38fca0b` without force, keeping main and
+rework synchronized. GitHub run `37703251502` completed successfully for the exact
+full SHA `38fca0bf44e52a4d0f68c28f2ed4cfab96cecf7a`. Inspected each job's steps:
+API installation/lint/tests/migration, web clean install/full audit/tests/build,
+both Chromium journeys, and both container image build steps all succeeded.
+These are observed `ubuntu-latest` CI results, not inferred local passes.
+
+Run: https://github.com/MarvelousJade/AssetLens/actions/runs/37703251502
+
+**Lookup hurdle:** The abbreviated commit filter returned an empty run list.
+Listing the branch and matching the full head SHA found the completed successful
+run. Empty filtered output was not treated as evidence of a missing or failed run.
+
+**Limits:** Container image builds are now verified; running container integrations,
+PostgreSQL, Celery workers, live providers, deployed security, and production remain
+unverified. Zero indexed npm audit findings are not a comprehensive security review.
+The historical learning checkpoints intentionally retain their original source and
+dependency state; use them only for the isolated exercises, not deployment.
+Learner personal investigation remains unfilled rather than fabricated.
 
 ## Learner investigation notes
 

@@ -133,7 +133,11 @@ Current rework verification: **56 API tests passed with 85% statement coverage**
 8 frontend tests and standalone type checking passed, the optimized Next.js build
 completed, and 2 Chromium journeys passed. Isolated SQLite migration upgrade and
 schema-drift checks passed. These are local Windows/Python 3.12.10/Node 24.19.0
-results; PostgreSQL, Celery workers, containers, and production were not reverified.
+results. [CI for `38fca0b`](https://github.com/MarvelousJade/AssetLens/actions/runs/37703251502)
+also passed all four jobs on `ubuntu-latest`, including the full frontend audit,
+browser journeys, and both container image builds. Image builds do not verify
+running container integrations; PostgreSQL, Celery workers, external providers,
+and production deployment remain unverified.
 
 See [the interview guide](docs/interview-guide.md) for a short study path,
 [the engineering journal](docs/engineering-journal.md) for reproduction and actual
