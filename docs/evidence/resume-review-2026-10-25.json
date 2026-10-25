@@ -1,0 +1,22 @@
+{
+  "reviewedAtUtc": "2026-10-25T22:51:27.760Z",
+  "reviewedSourceCommit": "3a855d8f04fe1eb66a0f95308cd8d23c30895e01",
+  "baselineMeaning": "Review commit only; historical experiment revisions are unknown unless explicitly recorded in the linked source.",
+  "files": [
+    {
+      "path": "docs/performance.md",
+      "bytes": 2090,
+      "sha256": "e70b2e50330fd4d4802be75cf9ef8cf92a2abbdf6ad268414efd6876d0015a1d"
+    },
+    {
+      "path": "apps/api/scripts/benchmark_api.py",
+      "bytes": 5398,
+      "sha256": "e79ff75b7b95009ce1eb60570fdc1d612fcdc0f4747b961d5dec58976f06f54b"
+    },
+    {
+      "path": "docs/security.md",
+      "bytes": 2509,
+      "sha256": "e2117d0ad6b9018bd7bc331eb209551a4c29dbe31930f57809672e3fd966a0f3"
+    }
+  ]
+}
