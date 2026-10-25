@@ -827,3 +827,21 @@ Learner personal investigation remains unfilled rather than fabricated.
 Not completed yet. Record personal reproductions, hypotheses, evidence, changes,
 verification, and lessons here after carrying out the exercises. Interview
 statements about personal investigation must use these completed notes.
+
+## October 25, 2026 — Restore CI after newly reported dependency advisories
+
+Problem: the documentation-only commit 5a9b781 triggered run 40242327567. The API job passed; web clean installation passed, then full npm audit failed with four findings (two moderate, one high, one critical). Tests/build were skipped, as were downstream containers/e2e. This is a dependency-audit failure, not evidence that the documentation changed product behavior.
+
+Checklist/acceptance: reproduce the indexed audit baseline; inspect compatible patched versions; update only affected packages/lockfile; keep full audit enforcement; run clean install, existing tests, standalone types and production build; inspect diff; commit/push; verify hosted jobs for the exact resulting SHA.
+
+Cause/evidence: Next.js 16.4.0, Vite 7.3.6 and Vitest/mocker 4.1.11 were in the newly reported vulnerable ranges. Relevant upstream advisories include https://github.com/advisories/GHSA-2464-fhr4-w9xw, https://github.com/advisories/GHSA-rq7h-c2jc-7f22 and https://github.com/advisories/GHSA-qxg6-89mg-rqv8. Failed run: https://github.com/MarvelousJade/AssetLens/actions/runs/40242327567 . This records indexed dependency findings, not a confirmed exploit or deployed incident.
+
+Change: targeted patch updates to Next.js 16.4.3, Vite 7.3.7 and Vitest/mocker 4.1.12; pin the tested Vite patch explicitly. Package engine/peer ranges accept the current local Node 22.23.3 and CI Node 24. React, app source, tests, workflow and audit thresholds are unchanged. No forced major upgrade, audit exception or warning suppression.
+
+Local verification on Windows, Node 22.23.3: npm ci passed; npm audit found zero indexed vulnerabilities (baseline four); npm test passed both files/all eight existing tests under Vitest 4.1.12; npx tsc --noEmit passed; npm run build passed under Next.js 16.4.3. npm ls confirmed Vite/mocker deduplication at patched versions. Audit counts were independently retained in the task workspace. These checks establish bounded compatibility and indexed findings, not a comprehensive security review or business-impact claim.
+
+Limitations: existing whatwg-encoding deprecation and blocked esbuild install-script notice remain visible; the install-script approval policy was not changed, and tests/build passed. The restored API virtual environment points to missing C:\Python312, so no local browser/API-runtime or container run is claimed. Hosted CI will validate API, Chromium journeys and container builds after publication. Historical benchmark and resume evidence remains separate and was not rerun by this dependency fix.
+
+Lesson: an unchanged application can fail a fresh audit as advisory data changes. Keep the audit gate and apply scoped compatible patches, then verify the complete workflow rather than rerunning a known vulnerable lockfile.
+
+Build-generated housekeeping: Next build switched next-env.d.ts imports from .next/dev/types to .next/types. Restored that build-mode-only generated change so the patch contains only dependency manifests and this investigation record. Both import targets are framework generated; no manual type bootstrap change is required.
